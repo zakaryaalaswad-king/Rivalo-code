@@ -26,14 +26,14 @@ from emergentintegrations.payments.stripe.checkout import (
 
 # ------------------------------------------------------------------ Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("arenabid")
+logger = logging.getLogger("rivalo")
 
 # ------------------------------------------------------------------ Config
 JWT_SECRET = os.environ["JWT_SECRET"]
 JWT_ALGO = "HS256"
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
-APP_NAME = os.environ.get("APP_NAME", "ArenaBid")
+APP_NAME = os.environ.get("APP_NAME", "Rivalo")
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "sk_test_emergent")
 
 resend.api_key = RESEND_API_KEY
@@ -44,7 +44,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
 # ------------------------------------------------------------------ App
-app = FastAPI(title="ArenaBid API")
+app = FastAPI(title="Rivalo API")
 api = APIRouter(prefix="/api")
 
 # ------------------------------------------------------------------ Utility
@@ -637,7 +637,7 @@ async def seed_demo():
 @app.on_event("startup")
 async def on_startup():
     await seed_demo()
-    logger.info("ArenaBid backend started")
+    logger.info("Rivalo backend started")
 
 @app.on_event("shutdown")
 async def on_shutdown():

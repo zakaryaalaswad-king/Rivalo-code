@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { formatApiError } from "../lib/api";
-import { Trophy } from "lucide-react";
+import Logo from "../components/Logo";
 
 export default function Register() {
   const { register } = useAuth();
@@ -23,8 +23,8 @@ export default function Register() {
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <Trophy size={32} className="text-[#D4AF37] mx-auto" />
-          <h1 className="font-display text-4xl mt-4">Join the arena</h1>
+          <div className="inline-block"><Logo size={42} animated /></div>
+          <h1 className="font-display text-4xl mt-4">Join <span className="text-[#D4AF37]">Rivalo</span></h1>
           <p className="text-slate-400 mt-2 text-sm">One account · post projects or compete for them.</p>
         </div>
         <form onSubmit={onSubmit} className="bg-[#0A0C22] border border-white/10 p-8 space-y-5" data-testid="register-form">
@@ -41,7 +41,7 @@ export default function Register() {
             <input value={form.password} onChange={onChange("password")} required type="password" minLength={6} className="w-full mt-2 px-4 py-3" data-testid="register-password-input" />
           </div>
           {err && <div className="text-red-400 text-sm" data-testid="register-error">{err}</div>}
-          <button disabled={loading} className="w-full bg-[#D4AF37] text-black py-3 font-semibold hover:bg-[#F3E5AB] transition-colors disabled:opacity-50" data-testid="register-submit-btn">
+          <button disabled={loading} className="w-full cta-neon py-3 disabled:opacity-50" data-testid="register-submit-btn">
             {loading ? "Creating…" : "Create account"}
           </button>
           <div className="text-sm text-slate-400 text-center">

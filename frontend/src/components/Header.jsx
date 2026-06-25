@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
-import { Trophy, LogOut, LayoutDashboard, PlusCircle, Compass } from "lucide-react";
+import Logo from "./Logo";
+import { LogOut, LayoutDashboard, PlusCircle, Compass } from "lucide-react";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -11,9 +12,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#050614]/70 border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2" data-testid="header-logo">
-          <Trophy className="text-[#D4AF37]" size={22} />
-          <span className="font-display text-2xl tracking-tight">Arena<span className="text-[#D4AF37]">Bid</span></span>
+        <Link to="/" className="flex items-center gap-2.5" data-testid="header-logo">
+          <Logo size={26} animated />
+          <span className="font-display text-2xl tracking-tight">Rival<span className="text-[#D4AF37] italic">o</span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-8">
           <NavLink to="/browse" className={linkCls} data-testid="nav-browse"><span className="inline-flex items-center gap-2"><Compass size={14} /> Browse</span></NavLink>
@@ -25,7 +26,7 @@ export default function Header() {
         <div className="flex items-center gap-3">
           {user && user !== false ? (
             <>
-              <Link to="/post" className="hidden sm:inline-flex items-center gap-2 bg-[#D4AF37] text-black px-5 py-2 font-semibold hover:bg-[#F3E5AB] transition-colors" data-testid="header-post-project-btn">
+              <Link to="/post" className="hidden sm:inline-flex items-center gap-2 cta-neon px-5 py-2" data-testid="header-post-project-btn">
                 <PlusCircle size={16} /> Post project
               </Link>
               <div className="flex items-center gap-2 pl-3 border-l border-white/10">
@@ -41,7 +42,7 @@ export default function Header() {
           ) : (
             <>
               <Link to="/login" className="text-sm text-slate-300 hover:text-white" data-testid="nav-login">Log in</Link>
-              <Link to="/register" className="bg-[#D4AF37] text-black px-5 py-2 font-semibold hover:bg-[#F3E5AB] transition-colors text-sm" data-testid="nav-register">Join arena</Link>
+              <Link to="/register" className="cta-neon px-5 py-2 text-sm" data-testid="nav-register">Join Rivalo</Link>
             </>
           )}
         </div>

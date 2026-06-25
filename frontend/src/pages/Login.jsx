@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { formatApiError } from "../lib/api";
-import { Trophy } from "lucide-react";
+import Logo from "../components/Logo";
 
 export default function Login() {
   const { login } = useAuth();
@@ -28,8 +28,8 @@ export default function Login() {
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <Trophy size={32} className="text-[#D4AF37] mx-auto" />
-          <h1 className="font-display text-4xl mt-4">Welcome back</h1>
+          <div className="inline-block"><Logo size={42} animated /></div>
+          <h1 className="font-display text-4xl mt-4">Welcome back to <span className="text-[#D4AF37]">Rivalo</span></h1>
           <p className="text-slate-400 mt-2 text-sm">Pick up where the arena left you.</p>
         </div>
         <form onSubmit={onSubmit} className="bg-[#0A0C22] border border-white/10 p-8 space-y-5" data-testid="login-form">
@@ -42,7 +42,7 @@ export default function Login() {
             <input value={password} onChange={(e) => setPassword(e.target.value)} required type="password" className="w-full mt-2 px-4 py-3" data-testid="login-password-input" />
           </div>
           {err && <div className="text-red-400 text-sm" data-testid="login-error">{err}</div>}
-          <button disabled={loading} className="w-full bg-[#D4AF37] text-black py-3 font-semibold hover:bg-[#F3E5AB] transition-colors disabled:opacity-50" data-testid="login-submit-btn">
+          <button disabled={loading} className="w-full cta-neon py-3 disabled:opacity-50" data-testid="login-submit-btn">
             {loading ? "Signing in…" : "Sign in"}
           </button>
           <div className="text-sm text-slate-400 text-center">

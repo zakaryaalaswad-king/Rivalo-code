@@ -1,4 +1,4 @@
-# ArenaBid — PRD
+# Rivalo — PRD
 
 ## Original problem statement
 > Build an app for freelancers where they can make competitions with each other to get the client's project.
@@ -27,6 +27,14 @@
 - Stripe Checkout escrow flow for project bounty (server-side amount, dynamic success/cancel URLs, polling page, webhook).
 - Dashboard with dual-role tabs ("As Client" / "As Freelancer") + live countdown timers.
 - Landing page: hero with stats, How it works, categories grid, dual CTA panels.
+
+## Rebrand v2 (2026-02-25)
+- Renamed `ArenaBid → Rivalo`. Updated backend `APP_NAME`, FastAPI title, logger, page title, all UI copy.
+- New logo: gold + purple opposing chevrons inside a sharp square (rivalry mark), wordmark "Rival**o**" with italic gold "o". Reusable `<Logo />` component with subtle pulse animation.
+- Neon/cyber + animated gradient mesh: fixed background with three drifting radial blobs (purple, dark-blue, gold) blurred 110px on slow 22-32s loops + faint cyber grid masked from the edges.
+- Reveal-on-scroll: `useReveal` hook (IntersectionObserver) and `<Reveal>` wrapper used across landing sections with staggered delays.
+- Subtle hero parallax (background image and floating neon orbs translate on scroll).
+- Marquee strip of disciplines below hero. Gradient CTA buttons (`.cta-neon`) with hover lift + dual-color shadow.
 
 ## Backlog (not yet built)
 - **P1** True object storage for portfolio images and deliverable file uploads (currently URL-only).

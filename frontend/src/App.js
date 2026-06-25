@@ -24,6 +24,8 @@ function ProtectedRoute({ children }) {
 function Shell() {
   return (
     <div className="App">
+      <div className="mesh-bg" aria-hidden="true"><span /></div>
+      <div className="cyber-grid" aria-hidden="true" />
       <Header />
       <Routes>
         <Route path="/" element={<Landing />} />
