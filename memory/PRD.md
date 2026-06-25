@@ -28,6 +28,12 @@
 - Dashboard with dual-role tabs ("As Client" / "As Freelancer") + live countdown timers.
 - Landing page: hero with stats, How it works, categories grid, dual CTA panels.
 
+## Round A iteration (2026-02-25)
+- **Branded emails**: `email_shell()` wrapper with inline SVG Rivalo logo, gold heading, dark-luxury layout. Used in approve, rejection, and winner emails.
+- **Object storage**: `POST /api/upload` (multipart, 10MB cap, MIME whitelist: images / PDF / mp4 / mov / txt / csv / zip). Returns `/api/files/{path}` URL stored on documents. `GET /api/files/{path}` serves files with Bearer or `?auth=token` (for `<img>` src). Reusable `<FileUploader />` integrated into Post Project (reference attachments) and submission form (deliverable files). File metadata persisted in `db.files` with `is_deleted` soft-delete.
+- **In-app notifications**: `db.notifications` collection. Created on `new_applicant`, `approved`, `rejected`, `submission`, `won`. Header bell with unread badge, dropdown with last 50, polling every 25s, mark-all-read.
+
+
 ## Rebrand v2 (2026-02-25)
 - Renamed `ArenaBid → Rivalo`. Updated backend `APP_NAME`, FastAPI title, logger, page title, all UI copy.
 - New logo: gold + purple opposing chevrons inside a sharp square (rivalry mark), wordmark "Rival**o**" with italic gold "o". Reusable `<Logo />` component with subtle pulse animation.

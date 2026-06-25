@@ -423,6 +423,7 @@ async def apply_to_project(project_id: str, body: ApplyReq, user: dict = Depends
         "created_at": now_iso(),
     }
     await db.applications.insert_one(app_doc)
+    await push_notification(project["client_id"], "new_applicant", "New applicant", f"{user.get('name','Someone')} applied to {project['title']}", f"/projects/{project_id}")
     return {k: v for k, v in app_doc.items() if k != "_id"}
 
 @api.get("/projects/{project_id}/applications")
