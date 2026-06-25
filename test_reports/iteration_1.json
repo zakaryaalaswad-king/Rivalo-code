@@ -1,0 +1,36 @@
+{
+  "summary": "First-finish smoke test of ArenaBid. Full backend end-to-end flow verified (register, login, /me, categories, project create, Stripe checkout creation + status, paid bypass via mongo, apply, list apps, approve, submit, list submissions, pick-winner, freelancer dashboard, mine=true, stats). Frontend verified: landing, login->dashboard, browse with categories+search+card, post-project form, dashboard tabs.",
+  "tested_scope": ["backend", "frontend", "auth", "integration"],
+  "passed": [
+    "GET /api/categories -> 200, 12 categories",
+    "POST /api/auth/register -> 200, returns user+token",
+    "POST /api/auth/login (client@demo.com / freelancer@demo.com) -> 200, returns user+token",
+    "GET /api/auth/me with Bearer -> 200, returns user",
+    "POST /api/projects -> 200, status=draft, payment_status=unpaid",
+    "POST /api/payments/checkout -> 200, returns checkout.stripe.com URL + session_id",
+    "GET /api/payments/status/{session_id} -> 200, returns Stripe status, persists metadata",
+    "After mongo mark paid+open, GET /api/projects?status=open returns the project",
+    "GET /api/projects?mine=true returns caller's project",
+    "POST /api/projects/{id}/apply (freelancer) -> 200, status=pending",
+    "GET /api/projects/{id}/applications (client) -> 200, lists apps",
+    "POST /api/projects/{id}/approve -> 200, status=in_progress, competition_deadline set, approved_freelancer_ids populated",
+    "POST /api/projects/{id}/submit -> 200, submission created",
+    "GET /api/projects/{id}/submissions (client) -> 200, lists submissions",
+    "POST /api/projects/{id}/pick-winner -> 200, status=completed, winner_user_id set",
+    "GET /api/dashboard/freelancer -> 200",
+    "GET /api/stats -> 200",
+    "Frontend Landing: hero 'Don't just bid. Out-design them all.' + 'Enter the arena' CTA visible",
+    "Frontend /login: demo creds redirect to /dashboard",
+    "Frontend /dashboard: 'As Client (0)' and 'As Freelancer (0)' tabs render",
+    "Frontend /browse: search input, 12 category chips, project card visible",
+    "Frontend /post: protected form renders (Title, Category, Brief, Bounty, Window, Seats)"
+  ],
+  "failed": [],
+  "action_items": [
+    "Non-blocking: Resend in sandbox will silently drop emails to unverified addresses during approve flow — already noted in spec."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": "Test credentials file present and used. Stripe full payment was bypassed by directly setting payment_status='paid' status='open' in mongo per main agent's instructions; checkout endpoint itself returned a real Stripe checkout URL. No console errors beyond expected 401 from /auth/me on logged-out landing."
+}

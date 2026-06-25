@@ -1,89 +1,653 @@
-from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
-
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+import os
+import asyncio
+import logging
+import uuid
+import bcrypt
+import jwt
+import resend
+from datetime import datetime, timezone, timedelta
+from typing import List, Optional, Literal
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query
+from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, Field, EmailStr
+
+from emergentintegrations.payments.stripe.checkout import (
+    StripeCheckout,
+    CheckoutSessionRequest,
+)
+
+# ------------------------------------------------------------------ Logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("arenabid")
+
+# ------------------------------------------------------------------ Config
+JWT_SECRET = os.environ["JWT_SECRET"]
+JWT_ALGO = "HS256"
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+APP_NAME = os.environ.get("APP_NAME", "ArenaBid")
+STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "sk_test_emergent")
+
+resend.api_key = RESEND_API_KEY
+
+# ------------------------------------------------------------------ Mongo
+mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ["DB_NAME"]]
 
-# Create the main app without a prefix
-app = FastAPI()
+# ------------------------------------------------------------------ App
+app = FastAPI(title="ArenaBid API")
+api = APIRouter(prefix="/api")
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# ------------------------------------------------------------------ Utility
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
+def new_id() -> str:
+    return str(uuid.uuid4())
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+def hash_password(pw: str) -> str:
+    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+def verify_password(pw: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(pw.encode(), hashed.encode())
+    except Exception:
+        return False
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
+def create_access_token(user_id: str, email: str) -> str:
+    return jwt.encode(
+        {
+            "sub": user_id,
+            "email": email,
+            "type": "access",
+            "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        },
+        JWT_SECRET,
+        algorithm=JWT_ALGO,
+    )
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+def public_user(u: dict) -> dict:
+    return {
+        "id": u["id"],
+        "email": u["email"],
+        "name": u.get("name", ""),
+        "headline": u.get("headline", ""),
+        "bio": u.get("bio", ""),
+        "skills": u.get("skills", []),
+        "portfolio": u.get("portfolio", []),
+        "avatar_url": u.get("avatar_url", ""),
+        "rating": u.get("rating", 0),
+        "completed": u.get("completed", 0),
+        "wins": u.get("wins", 0),
+        "created_at": u.get("created_at"),
+    }
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+async def get_current_user(request: Request) -> dict:
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
 
-# Include the router in the main app
-app.include_router(api_router)
+async def send_email_async(to: str, subject: str, html: str):
+    if not RESEND_API_KEY:
+        logger.info(f"[email mock] to={to} subj={subject}")
+        return
+    try:
+        await asyncio.to_thread(
+            resend.Emails.send,
+            {"from": SENDER_EMAIL, "to": [to], "subject": subject, "html": html},
+        )
+    except Exception as e:
+        logger.error(f"Email send failed to {to}: {e}")
 
+# ------------------------------------------------------------------ Models
+class RegisterReq(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+    name: str = Field(min_length=1)
+
+class LoginReq(BaseModel):
+    email: EmailStr
+    password: str
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    headline: Optional[str] = None
+    bio: Optional[str] = None
+    skills: Optional[List[str]] = None
+    portfolio: Optional[List[str]] = None
+    avatar_url: Optional[str] = None
+
+class ProjectCreate(BaseModel):
+    title: str = Field(min_length=3)
+    description: str = Field(min_length=10)
+    category: str
+    budget: float = Field(gt=0)
+    duration_hours: int = Field(ge=2, le=120)
+    max_competitors: int = Field(ge=1, le=10, default=3)
+    deliverables: str = ""
+    attachments: List[str] = []
+
+class ApplyReq(BaseModel):
+    pitch: str = Field(min_length=10)
+    sample_url: Optional[str] = ""
+
+class ApproveReq(BaseModel):
+    application_ids: List[str]
+
+class SubmitWorkReq(BaseModel):
+    description: str
+    files: List[str] = []
+    url: Optional[str] = ""
+
+class PickWinnerReq(BaseModel):
+    submission_id: str
+
+class CheckoutInitReq(BaseModel):
+    project_id: str
+    origin_url: str
+
+CATEGORIES = [
+    "Graphic Design", "Web Development", "Mobile Development", "Writing & Translation",
+    "Video & Animation", "Music & Audio", "Marketing & SEO", "Data & Analytics",
+    "UX/UI Design", "3D & Illustration", "Business Consulting", "AI & ML",
+]
+
+# ------------------------------------------------------------------ Auth routes
+@api.post("/auth/register")
+async def register(req: RegisterReq, response: Response):
+    email = req.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Email already registered")
+    user = {
+        "id": new_id(),
+        "email": email,
+        "name": req.name,
+        "password_hash": hash_password(req.password),
+        "headline": "",
+        "bio": "",
+        "skills": [],
+        "portfolio": [],
+        "avatar_url": "",
+        "rating": 0,
+        "completed": 0,
+        "wins": 0,
+        "created_at": now_iso(),
+    }
+    await db.users.insert_one(user)
+    token = create_access_token(user["id"], email)
+    response.set_cookie("access_token", token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    return {"user": public_user(user), "token": token}
+
+@api.post("/auth/login")
+async def login(req: LoginReq, response: Response):
+    email = req.email.lower()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user or not verify_password(req.password, user["password_hash"]):
+        raise HTTPException(401, "Invalid credentials")
+    token = create_access_token(user["id"], email)
+    response.set_cookie("access_token", token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    return {"user": public_user(user), "token": token}
+
+@api.post("/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token", path="/")
+    return {"ok": True}
+
+@api.get("/auth/me")
+async def me(user: dict = Depends(get_current_user)):
+    return public_user(user)
+
+# ------------------------------------------------------------------ Profile
+@api.patch("/users/me")
+async def update_me(body: ProfileUpdate, user: dict = Depends(get_current_user)):
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if update:
+        await db.users.update_one({"id": user["id"]}, {"$set": update})
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return public_user(fresh)
+
+@api.get("/users/{user_id}")
+async def get_user(user_id: str):
+    u = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not u:
+        raise HTTPException(404, "Not found")
+    return public_user(u)
+
+@api.get("/categories")
+async def get_categories():
+    return CATEGORIES
+
+# ------------------------------------------------------------------ Projects
+def project_view(p: dict) -> dict:
+    p = {k: v for k, v in p.items() if k != "_id"}
+    return p
+
+@api.post("/projects")
+async def create_project(body: ProjectCreate, user: dict = Depends(get_current_user)):
+    project = {
+        "id": new_id(),
+        "client_id": user["id"],
+        "client_name": user.get("name", ""),
+        "title": body.title,
+        "description": body.description,
+        "category": body.category,
+        "budget": body.budget,
+        "duration_hours": body.duration_hours,
+        "max_competitors": body.max_competitors,
+        "deliverables": body.deliverables,
+        "attachments": body.attachments,
+        # lifecycle: draft -> open -> in_progress -> completed -> closed
+        "status": "draft",
+        "payment_status": "unpaid",
+        "stripe_session_id": None,
+        "approved_freelancer_ids": [],
+        "competition_started_at": None,
+        "competition_deadline": None,
+        "winner_submission_id": None,
+        "winner_user_id": None,
+        "created_at": now_iso(),
+    }
+    await db.projects.insert_one(project)
+    return project_view(project)
+
+@api.get("/projects")
+async def list_projects(
+    category: Optional[str] = None,
+    status: Optional[str] = None,
+    q: Optional[str] = None,
+    mine: Optional[bool] = False,
+    request: Request = None,
+):
+    query: dict = {}
+    if status:
+        query["status"] = status
+    else:
+        query["status"] = {"$in": ["open", "in_progress", "completed"]}
+    if category and category != "All":
+        query["category"] = category
+    if q:
+        query["$or"] = [
+            {"title": {"$regex": q, "$options": "i"}},
+            {"description": {"$regex": q, "$options": "i"}},
+        ]
+    if mine:
+        user = await get_current_user(request)
+        query["client_id"] = user["id"]
+        query.pop("status", None)  # show all statuses for mine
+    cursor = db.projects.find(query, {"_id": 0}).sort("created_at", -1).limit(100)
+    return await cursor.to_list(100)
+
+@api.get("/projects/{project_id}")
+async def get_project(project_id: str):
+    p = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not p:
+        raise HTTPException(404, "Project not found")
+    return p
+
+# ------------------------------------------------------------------ Applications
+@api.post("/projects/{project_id}/apply")
+async def apply_to_project(project_id: str, body: ApplyReq, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["status"] != "open":
+        raise HTTPException(400, "Project is not open for applications")
+    if project["client_id"] == user["id"]:
+        raise HTTPException(400, "Cannot apply to your own project")
+    existing = await db.applications.find_one({"project_id": project_id, "user_id": user["id"]})
+    if existing:
+        raise HTTPException(400, "Already applied")
+    app_doc = {
+        "id": new_id(),
+        "project_id": project_id,
+        "user_id": user["id"],
+        "user_name": user.get("name", ""),
+        "user_headline": user.get("headline", ""),
+        "user_avatar": user.get("avatar_url", ""),
+        "pitch": body.pitch,
+        "sample_url": body.sample_url,
+        "status": "pending",  # pending | approved | rejected
+        "created_at": now_iso(),
+    }
+    await db.applications.insert_one(app_doc)
+    return {k: v for k, v in app_doc.items() if k != "_id"}
+
+@api.get("/projects/{project_id}/applications")
+async def list_applications(project_id: str, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["client_id"] != user["id"]:
+        raise HTTPException(403, "Only the project owner can view applications")
+    cursor = db.applications.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1)
+    return await cursor.to_list(200)
+
+@api.post("/projects/{project_id}/approve")
+async def approve_applications(project_id: str, body: ApproveReq, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["client_id"] != user["id"]:
+        raise HTTPException(403, "Forbidden")
+    if project["status"] != "open":
+        raise HTTPException(400, "Project not open")
+    if len(body.application_ids) == 0:
+        raise HTTPException(400, "Pick at least one applicant")
+    if len(body.application_ids) > project["max_competitors"]:
+        raise HTTPException(400, f"Max {project['max_competitors']} competitors")
+    apps = await db.applications.find({"id": {"$in": body.application_ids}, "project_id": project_id}).to_list(50)
+    if len(apps) != len(body.application_ids):
+        raise HTTPException(400, "Invalid applications")
+    approved_user_ids = [a["user_id"] for a in apps]
+    started = datetime.now(timezone.utc)
+    deadline = started + timedelta(hours=project["duration_hours"])
+    await db.applications.update_many(
+        {"id": {"$in": body.application_ids}}, {"$set": {"status": "approved"}}
+    )
+    await db.applications.update_many(
+        {"project_id": project_id, "id": {"$nin": body.application_ids}},
+        {"$set": {"status": "rejected"}},
+    )
+    await db.projects.update_one(
+        {"id": project_id},
+        {"$set": {
+            "status": "in_progress",
+            "approved_freelancer_ids": approved_user_ids,
+            "competition_started_at": started.isoformat(),
+            "competition_deadline": deadline.isoformat(),
+        }},
+    )
+    # Notify approved freelancers
+    approved_users = await db.users.find({"id": {"$in": approved_user_ids}}, {"_id": 0}).to_list(50)
+    rejected_apps = await db.applications.find({"project_id": project_id, "status": "rejected"}, {"_id": 0}).to_list(50)
+    deadline_str = deadline.strftime("%b %d, %Y at %H:%M UTC")
+    for u in approved_users:
+        html = f"""
+        <div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0A0C22;color:#F8FAFC;padding:32px;border:1px solid #D4AF37'>
+          <h1 style='color:#D4AF37;margin:0 0 16px;font-family:Georgia,serif'>You're in the arena!</h1>
+          <p>Hi {u.get('name','Freelancer')},</p>
+          <p>Great news — you've been approved to compete for <strong style='color:#D4AF37'>{project['title']}</strong>.</p>
+          <p><strong>Bounty:</strong> ${project['budget']}<br/>
+             <strong>Deadline:</strong> {deadline_str}<br/>
+             <strong>Competitors:</strong> {len(approved_user_ids)}</p>
+          <p>Head to your dashboard now and submit your best work before the timer runs out.</p>
+          <p style='margin-top:24px;color:#94A3B8;font-size:12px'>— {APP_NAME}</p>
+        </div>"""
+        asyncio.create_task(send_email_async(u["email"], f"Approved: {project['title']}", html))
+    for a in rejected_apps:
+        u = await db.users.find_one({"id": a["user_id"]}, {"_id": 0})
+        if u:
+            html = f"<p>Hi {u.get('name','')},</p><p>Thanks for applying to <strong>{project['title']}</strong>. The client chose other competitors this round. New opportunities post daily on {APP_NAME}.</p>"
+            asyncio.create_task(send_email_async(u["email"], f"Update: {project['title']}", html))
+    refreshed = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    return refreshed
+
+# ------------------------------------------------------------------ Submissions
+@api.post("/projects/{project_id}/submit")
+async def submit_work(project_id: str, body: SubmitWorkReq, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["status"] != "in_progress":
+        raise HTTPException(400, "Competition not active")
+    if user["id"] not in project["approved_freelancer_ids"]:
+        raise HTTPException(403, "Not approved for this competition")
+    deadline = datetime.fromisoformat(project["competition_deadline"])
+    if datetime.now(timezone.utc) > deadline:
+        raise HTTPException(400, "Deadline passed")
+    existing = await db.submissions.find_one({"project_id": project_id, "user_id": user["id"]})
+    doc = {
+        "id": existing["id"] if existing else new_id(),
+        "project_id": project_id,
+        "user_id": user["id"],
+        "user_name": user.get("name", ""),
+        "user_avatar": user.get("avatar_url", ""),
+        "description": body.description,
+        "files": body.files,
+        "url": body.url,
+        "submitted_at": now_iso(),
+    }
+    if existing:
+        await db.submissions.update_one({"id": existing["id"]}, {"$set": doc})
+    else:
+        await db.submissions.insert_one(doc)
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+@api.get("/projects/{project_id}/submissions")
+async def list_submissions(project_id: str, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    is_owner = project["client_id"] == user["id"]
+    is_competitor = user["id"] in project["approved_freelancer_ids"]
+    if not (is_owner or is_competitor):
+        raise HTTPException(403, "Forbidden")
+    cursor = db.submissions.find({"project_id": project_id}, {"_id": 0}).sort("submitted_at", -1)
+    subs = await cursor.to_list(50)
+    if not is_owner:
+        subs = [s for s in subs if s["user_id"] == user["id"]]
+    return subs
+
+@api.post("/projects/{project_id}/pick-winner")
+async def pick_winner(project_id: str, body: PickWinnerReq, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["client_id"] != user["id"]:
+        raise HTTPException(403, "Forbidden")
+    if project["status"] != "in_progress":
+        raise HTTPException(400, "Project not in progress")
+    sub = await db.submissions.find_one({"id": body.submission_id, "project_id": project_id})
+    if not sub:
+        raise HTTPException(404, "Submission not found")
+    await db.projects.update_one(
+        {"id": project_id},
+        {"$set": {"status": "completed", "winner_submission_id": sub["id"], "winner_user_id": sub["user_id"]}},
+    )
+    await db.users.update_one({"id": sub["user_id"]}, {"$inc": {"wins": 1, "completed": 1}})
+    winner = await db.users.find_one({"id": sub["user_id"]}, {"_id": 0})
+    if winner:
+        html = f"<h1 style='color:#D4AF37'>You won!</h1><p>Congratulations on winning <strong>{project['title']}</strong> ($ {project['budget']} bounty). The client will be in touch.</p>"
+        asyncio.create_task(send_email_async(winner["email"], f"You won: {project['title']}", html))
+    return await db.projects.find_one({"id": project_id}, {"_id": 0})
+
+@api.get("/dashboard/freelancer")
+async def freelancer_dashboard(user: dict = Depends(get_current_user)):
+    applied = await db.applications.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    pids = list({a["project_id"] for a in applied})
+    projects = await db.projects.find({"id": {"$in": pids}}, {"_id": 0}).to_list(200)
+    pmap = {p["id"]: p for p in projects}
+    competitions = []
+    for a in applied:
+        p = pmap.get(a["project_id"])
+        if p:
+            competitions.append({"application": a, "project": p})
+    return {"competitions": competitions}
+
+# ------------------------------------------------------------------ Payments
+@api.post("/payments/checkout")
+async def create_checkout(body: CheckoutInitReq, request: Request, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": body.project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["client_id"] != user["id"]:
+        raise HTTPException(403, "Forbidden")
+    if project["payment_status"] == "paid":
+        raise HTTPException(400, "Already paid")
+    amount = float(project["budget"])  # server-side amount
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_co = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    origin = body.origin_url.rstrip("/")
+    success_url = f"{origin}/payment/success?session_id={{CHECKOUT_SESSION_ID}}&project_id={project['id']}"
+    cancel_url = f"{origin}/projects/{project['id']}"
+    co_req = CheckoutSessionRequest(
+        amount=amount,
+        currency="usd",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={"project_id": project["id"], "client_id": user["id"], "kind": "project_bounty"},
+    )
+    session = await stripe_co.create_checkout_session(co_req)
+    await db.payment_transactions.insert_one({
+        "id": new_id(),
+        "session_id": session.session_id,
+        "project_id": project["id"],
+        "user_id": user["id"],
+        "amount": amount,
+        "currency": "usd",
+        "payment_status": "initiated",
+        "status": "open",
+        "metadata": {"project_id": project["id"], "client_id": user["id"]},
+        "created_at": now_iso(),
+    })
+    return {"url": session.url, "session_id": session.session_id}
+
+@api.get("/payments/status/{session_id}")
+async def payment_status(session_id: str, request: Request):
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_co = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    status = await stripe_co.get_checkout_status(session_id)
+    tx = await db.payment_transactions.find_one({"session_id": session_id})
+    if not tx:
+        raise HTTPException(404, "Transaction not found")
+    if tx["payment_status"] != "paid" and status.payment_status == "paid":
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {"payment_status": "paid", "status": status.status, "paid_at": now_iso()}},
+        )
+        # activate project
+        project_id = tx["metadata"].get("project_id")
+        if project_id:
+            await db.projects.update_one(
+                {"id": project_id, "payment_status": {"$ne": "paid"}},
+                {"$set": {"payment_status": "paid", "status": "open"}},
+            )
+    else:
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {"status": status.status, "payment_status": status.payment_status}},
+        )
+    return {
+        "status": status.status,
+        "payment_status": status.payment_status,
+        "amount_total": status.amount_total,
+        "currency": status.currency,
+        "metadata": status.metadata,
+    }
+
+@api.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    body = await request.body()
+    sig = request.headers.get("Stripe-Signature", "")
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_co = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    try:
+        evt = await stripe_co.handle_webhook(body, sig)
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return JSONResponse({"received": False}, status_code=400)
+    if evt.payment_status == "paid":
+        tx = await db.payment_transactions.find_one({"session_id": evt.session_id})
+        if tx and tx["payment_status"] != "paid":
+            await db.payment_transactions.update_one(
+                {"session_id": evt.session_id},
+                {"$set": {"payment_status": "paid", "status": "complete", "paid_at": now_iso()}},
+            )
+            project_id = (evt.metadata or {}).get("project_id") or tx["metadata"].get("project_id")
+            if project_id:
+                await db.projects.update_one(
+                    {"id": project_id, "payment_status": {"$ne": "paid"}},
+                    {"$set": {"payment_status": "paid", "status": "open"}},
+                )
+    return {"received": True}
+
+# ------------------------------------------------------------------ Stats
+@api.get("/stats")
+async def stats():
+    open_projects = await db.projects.count_documents({"status": "open"})
+    in_progress = await db.projects.count_documents({"status": "in_progress"})
+    completed = await db.projects.count_documents({"status": "completed"})
+    users = await db.users.count_documents({})
+    return {
+        "open_projects": open_projects,
+        "in_progress": in_progress,
+        "completed": completed,
+        "users": users,
+    }
+
+# ------------------------------------------------------------------ Seed
+async def seed_demo():
+    indexes_users = await db.users.index_information()
+    if "email_1" not in indexes_users:
+        await db.users.create_index("email", unique=True)
+    await db.applications.create_index([("project_id", 1), ("user_id", 1)], unique=True)
+
+    demos = [
+        {"email": "client@demo.com", "name": "Aria Quinn", "headline": "Founder · Loop Studio"},
+        {"email": "freelancer@demo.com", "name": "Milo Tanaka", "headline": "Brand designer · 7 yrs",
+         "skills": ["Logo", "Branding", "Typography"], "portfolio": [
+             "https://images.pexels.com/photos/7864379/pexels-photo-7864379.jpeg",
+             "https://images.pexels.com/photos/12899144/pexels-photo-12899144.jpeg",
+         ]},
+    ]
+    for d in demos:
+        if not await db.users.find_one({"email": d["email"]}):
+            await db.users.insert_one({
+                "id": new_id(),
+                "email": d["email"],
+                "name": d["name"],
+                "password_hash": hash_password("demo1234"),
+                "headline": d.get("headline", ""),
+                "bio": d.get("bio", ""),
+                "skills": d.get("skills", []),
+                "portfolio": d.get("portfolio", []),
+                "avatar_url": "",
+                "rating": 0,
+                "completed": 0,
+                "wins": 0,
+                "created_at": now_iso(),
+            })
+
+@app.on_event("startup")
+async def on_startup():
+    await seed_demo()
+    logger.info("ArenaBid backend started")
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    client.close()
+
+app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
