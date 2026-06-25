@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import Logo from "./Logo";
+import NotificationBell from "./NotificationBell";
 import { LogOut, LayoutDashboard, PlusCircle, Compass } from "lucide-react";
 
 export default function Header() {
@@ -29,6 +30,7 @@ export default function Header() {
               <Link to="/post" className="hidden sm:inline-flex items-center gap-2 cta-neon px-5 py-2" data-testid="header-post-project-btn">
                 <PlusCircle size={16} /> Post project
               </Link>
+              <NotificationBell />
               <div className="flex items-center gap-2 pl-3 border-l border-white/10">
                 <div className="hidden sm:block text-right leading-tight">
                   <div className="text-sm">{user.name}</div>

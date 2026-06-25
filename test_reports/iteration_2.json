@@ -1,0 +1,37 @@
+{
+  "summary": "Round A iteration smoke tests for Rivalo: object storage uploads, in-app notifications, branded transactional emails. 12/13 backend checks pass. 1 missing notification (new_applicant) on apply. Frontend smoke (bell, dropdown, file uploader on /post, login flow) all pass.",
+  "tested_scope": ["backend", "frontend", "integration"],
+  "passed": [
+    "POST /api/upload returns {id, url=/api/files/..., content_type, filename} (image/png)",
+    "GET /api/files/{path} with Bearer -> 200 image/png",
+    "GET /api/files/{path}?auth=TOKEN -> 200 image/png (for <img> tags)",
+    "GET /api/files/{path} with no auth -> 401",
+    "POST /api/upload with octet-stream/.exe -> 400 'Unsupported file type'",
+    "POST /api/upload with 11MB payload -> 400 'File too large (max 10MB)'",
+    "GET /api/notifications fresh -> {items:[], unread:0}",
+    "Approve flow pushes 'approved' notifications to selected freelancers",
+    "Approve flow pushes 'rejected' notifications to non-selected applicants",
+    "Submit flow pushes 'submission' notification to client",
+    "Pick-winner pushes 'won' notification to winner",
+    "POST /api/notifications/read-all sets unread=0",
+    "Full project lifecycle works: create project -> mark paid (mongo) -> apply -> approve -> submit -> pick-winner",
+    "Login -> /dashboard navigation clean; dashboard tabs render",
+    "Header notification bell present (data-testid=notification-bell-btn); dropdown opens and shows latest notification (e.g. 'New submission')",
+    "/post page (PostProject) renders FileUploader with data-testid=file-uploader-btn"
+  ],
+  "failed": [
+    {
+      "area": "backend / notifications",
+      "issue": "POST /api/projects/{id}/apply does NOT push a 'new_applicant' notification to the project owner. Spec explicitly requires it. apply_to_project() in /app/backend/server.py (~line 401-426) inserts the application but never calls push_notification(project['client_id'], 'new_applicant', ...). After freelancer applied, client's /api/notifications still returned items:[] unread:0 (verified twice).",
+      "evidence": "curl POST /api/projects/{pid}/apply with freelancer token -> 200; immediately after, curl GET /api/notifications with client token -> {\"items\":[],\"unread\":0}. Other notification kinds (approved/rejected/submission/won) all worked in the same run.",
+      "priority": "HIGH"
+    }
+  ],
+  "action_items": [
+    "In /app/backend/server.py apply_to_project (~line 425), after db.applications.insert_one(app_doc), add: await push_notification(project['client_id'], 'new_applicant', 'New applicant', f\"{user.get('name','Someone')} applied to {project['title']}\", f\"/projects/{project_id}\"). Optionally also send a branded email via send_email_async to project owner using email_shell."
+  ],
+  "success_rate": {"backend": "92%", "frontend": "100%"},
+  "retest_needed": true,
+  "full_testing_deferred": true,
+  "notes": "Resend in sandbox: only verified that send_email_async invocation paths exist in approve/pick-winner (per spec), no delivery verification needed. Frontend submission FileUploader (in-progress project view) and approved-freelancer submission flow were not exercised end-to-end via UI due to time; backend /submit notif path already verified via curl."
+}

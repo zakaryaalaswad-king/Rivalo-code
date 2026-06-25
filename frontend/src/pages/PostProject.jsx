@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { formatApiError } from "../lib/api";
 import { Trophy } from "lucide-react";
+import FileUploader from "../components/FileUploader";
 
 export default function PostProject() {
   const nav = useNavigate();
@@ -24,7 +25,8 @@ export default function PostProject() {
     e.preventDefault();
     setErr(""); setLoading(true);
     try {
-      const { data: project } = await api.post("/projects", form);
+      const payload = { ...form, attachments: form.attachments.map((a) => a.url) };
+      const { data: project } = await api.post("/projects", payload);
       // Initiate stripe checkout to fund the bounty
       const { data: co } = await api.post("/payments/checkout", { project_id: project.id, origin_url: window.location.origin });
       window.location.href = co.url;
@@ -67,6 +69,9 @@ export default function PostProject() {
         </div>
         <Field label="Deliverables (optional)">
           <textarea value={form.deliverables} onChange={onChange("deliverables")} rows={3} placeholder="Source files, logo on dark/light, social cover…" className="w-full px-4 py-3" data-testid="post-deliverables-input" />
+        </Field>
+        <Field label="Reference attachments (optional · images / PDFs / videos)">
+          <FileUploader value={form.attachments} onChange={(arr) => setForm((f) => ({ ...f, attachments: arr }))} max={6} />
         </Field>
 
         <div className="bg-[#101230] border border-[#D4AF37]/30 p-4 text-sm text-slate-300">

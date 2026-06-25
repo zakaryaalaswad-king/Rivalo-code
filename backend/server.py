@@ -13,11 +13,12 @@ import jwt
 import resend
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Literal
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query, UploadFile, File, Header
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
+import requests
 
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout,
@@ -35,6 +36,50 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
 APP_NAME = os.environ.get("APP_NAME", "Rivalo")
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "sk_test_emergent")
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+APP_SLUG = "rivalo"
+_storage_key: Optional[str] = None
+
+def init_storage() -> Optional[str]:
+    global _storage_key
+    if _storage_key:
+        return _storage_key
+    if not EMERGENT_LLM_KEY:
+        return None
+    try:
+        r = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
+        r.raise_for_status()
+        _storage_key = r.json()["storage_key"]
+        return _storage_key
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
+        return None
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    if not key:
+        raise HTTPException(503, "Storage not available")
+    r = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
+    if r.status_code == 403:
+        # token may have expired — reinit once
+        globals()["_storage_key"] = None
+        key = init_storage()
+        r = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
+    r.raise_for_status()
+    return r.json()
+
+def get_object(path: str) -> tuple:
+    key = init_storage()
+    if not key:
+        raise HTTPException(503, "Storage not available")
+    r = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    if r.status_code == 403:
+        globals()["_storage_key"] = None
+        key = init_storage()
+        r = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    r.raise_for_status()
+    return r.content, r.headers.get("Content-Type", "application/octet-stream")
 
 resend.api_key = RESEND_API_KEY
 
@@ -121,6 +166,51 @@ async def send_email_async(to: str, subject: str, html: str):
         )
     except Exception as e:
         logger.error(f"Email send failed to {to}: {e}")
+
+# Inline Rivalo logo (SVG) — works in all email clients
+RIVALO_LOGO_SVG = (
+    "<svg width='40' height='40' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'>"
+    "<rect x='2' y='2' width='44' height='44' fill='none' stroke='#D4AF37' stroke-width='1.5'/>"
+    "<path d='M6 6 L24 24 L6 42 Z' fill='#D4AF37'/>"
+    "<path d='M42 6 L24 24 L42 42 Z' fill='#A855F7'/>"
+    "<circle cx='24' cy='24' r='2.2' fill='#FFFFFF'/></svg>"
+)
+
+def email_shell(title: str, body_html: str) -> str:
+    """Wrap content in branded Rivalo email template."""
+    return f"""
+    <div style='font-family:Arial,Helvetica,sans-serif;background:#050614;padding:32px 16px;'>
+      <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='max-width:600px;margin:0 auto;background:#0A0C22;border:1px solid rgba(212,175,55,0.3);'>
+        <tr><td style='padding:24px 32px;border-bottom:1px solid rgba(255,255,255,0.06);'>
+          <table role='presentation' cellpadding='0' cellspacing='0'>
+            <tr>
+              <td style='vertical-align:middle;padding-right:12px;'>{RIVALO_LOGO_SVG}</td>
+              <td style='vertical-align:middle;font-family:Georgia,serif;font-size:24px;color:#F8FAFC;letter-spacing:-0.5px;'>Rival<span style='color:#D4AF37;font-style:italic;'>o</span></td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style='padding:32px;color:#F8FAFC;'>
+          <h1 style='font-family:Georgia,serif;color:#D4AF37;margin:0 0 16px;font-size:28px;'>{title}</h1>
+          {body_html}
+        </td></tr>
+        <tr><td style='padding:20px 32px;border-top:1px solid rgba(255,255,255,0.06);color:#64748B;font-size:12px;'>
+          Rivalo · the competitive freelance arena · You're receiving this because of activity on your account.
+        </td></tr>
+      </table>
+    </div>"""
+
+# ------------------------------------------------------------------ Notifications
+async def push_notification(user_id: str, kind: str, title: str, message: str, link: str = ""):
+    await db.notifications.insert_one({
+        "id": new_id(),
+        "user_id": user_id,
+        "kind": kind,  # approved | rejected | won | new_applicant | submission
+        "title": title,
+        "message": message,
+        "link": link,
+        "read": False,
+        "created_at": now_iso(),
+    })
 
 # ------------------------------------------------------------------ Models
 class RegisterReq(BaseModel):
@@ -385,23 +475,23 @@ async def approve_applications(project_id: str, body: ApproveReq, user: dict = D
     rejected_apps = await db.applications.find({"project_id": project_id, "status": "rejected"}, {"_id": 0}).to_list(50)
     deadline_str = deadline.strftime("%b %d, %Y at %H:%M UTC")
     for u in approved_users:
-        html = f"""
-        <div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0A0C22;color:#F8FAFC;padding:32px;border:1px solid #D4AF37'>
-          <h1 style='color:#D4AF37;margin:0 0 16px;font-family:Georgia,serif'>You're in the arena!</h1>
-          <p>Hi {u.get('name','Freelancer')},</p>
-          <p>Great news — you've been approved to compete for <strong style='color:#D4AF37'>{project['title']}</strong>.</p>
-          <p><strong>Bounty:</strong> ${project['budget']}<br/>
-             <strong>Deadline:</strong> {deadline_str}<br/>
-             <strong>Competitors:</strong> {len(approved_user_ids)}</p>
-          <p>Head to your dashboard now and submit your best work before the timer runs out.</p>
-          <p style='margin-top:24px;color:#94A3B8;font-size:12px'>— {APP_NAME}</p>
-        </div>"""
-        asyncio.create_task(send_email_async(u["email"], f"Approved: {project['title']}", html))
+        body = f"""
+          <p style='margin:0 0 12px;'>Hi {u.get('name','Freelancer')},</p>
+          <p style='margin:0 0 12px;'>You've been approved to compete for <strong style='color:#D4AF37;'>{project['title']}</strong>.</p>
+          <table cellpadding='0' cellspacing='0' style='margin:16px 0;'>
+            <tr><td style='padding:4px 16px 4px 0;color:#94A3B8;'>Bounty</td><td style='color:#D4AF37;font-family:monospace;'>${project['budget']}</td></tr>
+            <tr><td style='padding:4px 16px 4px 0;color:#94A3B8;'>Deadline</td><td>{deadline_str}</td></tr>
+            <tr><td style='padding:4px 16px 4px 0;color:#94A3B8;'>Competitors</td><td>{len(approved_user_ids)}</td></tr>
+          </table>
+          <p style='margin:24px 0 0;'>Head to your dashboard and submit your best work before the timer runs out.</p>"""
+        asyncio.create_task(send_email_async(u["email"], f"You're in the arena: {project['title']}", email_shell("You're in the arena", body)))
+        await push_notification(u["id"], "approved", "Approved to compete", f"{project['title']} · deadline {deadline_str}", f"/projects/{project_id}")
     for a in rejected_apps:
         u = await db.users.find_one({"id": a["user_id"]}, {"_id": 0})
         if u:
-            html = f"<p>Hi {u.get('name','')},</p><p>Thanks for applying to <strong>{project['title']}</strong>. The client chose other competitors this round. New opportunities post daily on {APP_NAME}.</p>"
-            asyncio.create_task(send_email_async(u["email"], f"Update: {project['title']}", html))
+            body = f"<p>Hi {u.get('name','')},</p><p>Thanks for applying to <strong>{project['title']}</strong>. The client chose other competitors this round. New briefs post daily on Rivalo.</p>"
+            asyncio.create_task(send_email_async(u["email"], f"Update on {project['title']}", email_shell("Not this round", body)))
+            await push_notification(u["id"], "rejected", "Not selected", f"You weren't picked for {project['title']}.", f"/projects/{project_id}")
     refreshed = await db.projects.find_one({"id": project_id}, {"_id": 0})
     return refreshed
 
@@ -434,6 +524,7 @@ async def submit_work(project_id: str, body: SubmitWorkReq, user: dict = Depends
         await db.submissions.update_one({"id": existing["id"]}, {"$set": doc})
     else:
         await db.submissions.insert_one(doc)
+        await push_notification(project["client_id"], "submission", "New submission", f"{user.get('name','A competitor')} submitted work for {project['title']}", f"/projects/{project_id}")
     return {k: v for k, v in doc.items() if k != "_id"}
 
 @api.get("/projects/{project_id}/submissions")
@@ -470,8 +561,9 @@ async def pick_winner(project_id: str, body: PickWinnerReq, user: dict = Depends
     await db.users.update_one({"id": sub["user_id"]}, {"$inc": {"wins": 1, "completed": 1}})
     winner = await db.users.find_one({"id": sub["user_id"]}, {"_id": 0})
     if winner:
-        html = f"<h1 style='color:#D4AF37'>You won!</h1><p>Congratulations on winning <strong>{project['title']}</strong> ($ {project['budget']} bounty). The client will be in touch.</p>"
-        asyncio.create_task(send_email_async(winner["email"], f"You won: {project['title']}", html))
+        body = f"<p>Congratulations on winning <strong>{project['title']}</strong> — a <span style='color:#D4AF37;font-family:monospace;'>${project['budget']}</span> bounty. The client will be in touch shortly.</p>"
+        asyncio.create_task(send_email_async(winner["email"], f"You won: {project['title']}", email_shell("You won.", body)))
+        await push_notification(winner["id"], "won", "You won!", f"Bounty of ${project['budget']} for {project['title']}", f"/projects/{project_id}")
     return await db.projects.find_one({"id": project_id}, {"_id": 0})
 
 @api.get("/dashboard/freelancer")
@@ -587,6 +679,78 @@ async def stripe_webhook(request: Request):
                 )
     return {"received": True}
 
+# ------------------------------------------------------------------ Uploads & Notifications
+ALLOWED_MIMES = {
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "application/pdf", "application/zip",
+    "video/mp4", "video/quicktime",
+    "text/plain", "text/csv",
+}
+EXT_BY_MIME = {
+    "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp",
+    "application/pdf": "pdf", "application/zip": "zip",
+    "video/mp4": "mp4", "video/quicktime": "mov",
+    "text/plain": "txt", "text/csv": "csv",
+}
+
+@api.post("/upload")
+async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    ct = (file.content_type or "application/octet-stream").lower()
+    if ct not in ALLOWED_MIMES:
+        raise HTTPException(400, f"Unsupported file type: {ct}")
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 10MB)")
+    ext = EXT_BY_MIME.get(ct, "bin")
+    path = f"{APP_SLUG}/uploads/{user['id']}/{new_id()}.{ext}"
+    result = put_object(path, data, ct)
+    rec = {
+        "id": new_id(),
+        "storage_path": result["path"],
+        "owner_id": user["id"],
+        "original_filename": file.filename or f"file.{ext}",
+        "content_type": ct,
+        "size": result.get("size", len(data)),
+        "is_deleted": False,
+        "created_at": now_iso(),
+    }
+    await db.files.insert_one(rec)
+    # Public URL relative to our API; frontend embeds with ?auth=token
+    return {"id": rec["id"], "url": f"/api/files/{result['path']}", "content_type": ct, "filename": rec["original_filename"]}
+
+@api.get("/files/{path:path}")
+async def download_file(path: str, request: Request, auth: Optional[str] = Query(None)):
+    # Accept either Authorization header (cookie/Bearer) or ?auth=token (for <img> tags).
+    if auth and "authorization" not in {k.lower() for k in request.headers.keys()} and "access_token" not in request.cookies:
+        # Inject Bearer for get_current_user
+        class _R: pass
+        # Easier: just decode here.
+        try:
+            payload = jwt.decode(auth, JWT_SECRET, algorithms=[JWT_ALGO])
+            user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0})
+            if not user: raise HTTPException(401)
+        except Exception:
+            raise HTTPException(401, "Invalid auth")
+    else:
+        await get_current_user(request)
+    rec = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not rec:
+        raise HTTPException(404, "File not found")
+    data, ct = get_object(path)
+    return Response(content=data, media_type=rec.get("content_type", ct))
+
+@api.get("/notifications")
+async def list_notifications(user: dict = Depends(get_current_user)):
+    cursor = db.notifications.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).limit(50)
+    items = await cursor.to_list(50)
+    unread = sum(1 for n in items if not n["read"])
+    return {"items": items, "unread": unread}
+
+@api.post("/notifications/read-all")
+async def mark_all_read(user: dict = Depends(get_current_user)):
+    await db.notifications.update_many({"user_id": user["id"], "read": False}, {"$set": {"read": True}})
+    return {"ok": True}
+
 # ------------------------------------------------------------------ Stats
 @api.get("/stats")
 async def stats():
@@ -637,6 +801,7 @@ async def seed_demo():
 @app.on_event("startup")
 async def on_startup():
     await seed_demo()
+    init_storage()
     logger.info("Rivalo backend started")
 
 @app.on_event("shutdown")
