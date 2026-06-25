@@ -13,8 +13,8 @@ export default function Dashboard() {
   const [tab, setTab] = useState("client");
 
   useEffect(() => {
-    api.get("/projects", { params: { mine: true } }).then((r) => setMyProjects(r.data)).catch(() => {});
-    api.get("/dashboard/freelancer").then((r) => setComps(r.data.competitions || [])).catch(() => {});
+    api.get("/projects", { params: { mine: true } }).then((r) => setMyProjects(r.data)).catch((e) => console.error("Load my projects failed", e));
+    api.get("/dashboard/freelancer").then((r) => setComps(r.data.competitions || [])).catch((e) => console.error("Load competitions failed", e));
   }, []);
 
   if (!user || user === false) return null;

@@ -9,7 +9,7 @@ export default function NotificationBell() {
   const ref = useRef(null);
 
   const refresh = async () => {
-    try { const { data } = await api.get("/notifications"); setData(data); } catch {}
+    try { const { data } = await api.get("/notifications"); setData(data); } catch (e) { console.error("Notifications refresh failed", e); }
   };
   useEffect(() => {
     refresh();
@@ -22,7 +22,7 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  const markAll = async () => { try { await api.post("/notifications/read-all"); refresh(); } catch {} };
+  const markAll = async () => { try { await api.post("/notifications/read-all"); refresh(); } catch (e) { console.error("Mark all read failed", e); } };
 
   return (
     <div className="relative" ref={ref}>

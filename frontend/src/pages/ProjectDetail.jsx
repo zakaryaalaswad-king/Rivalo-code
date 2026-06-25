@@ -21,10 +21,10 @@ export default function ProjectDetail() {
       setProject(p);
       if (user && user !== false) {
         if (p.client_id === user.id) {
-          try { setApplications((await api.get(`/projects/${id}/applications`)).data); } catch {}
+          try { setApplications((await api.get(`/projects/${id}/applications`)).data); } catch (e) { console.error("Load applications failed", e); }
         }
         if (p.client_id === user.id || p.approved_freelancer_ids?.includes(user.id)) {
-          try { setSubmissions((await api.get(`/projects/${id}/submissions`)).data); } catch {}
+          try { setSubmissions((await api.get(`/projects/${id}/submissions`)).data); } catch (e) { console.error("Load submissions failed", e); }
         }
       }
     } catch (e) { setErr(formatApiError(e)); }
@@ -216,7 +216,11 @@ function SubmissionsPanel({ project, submissions, isClient, reload }) {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const mine = submissions.find((s) => s.user_id === user?.id);
-  useEffect(() => { if (mine) setForm({ description: mine.description, url: mine.url || "", files: (mine.files || []).map((u) => ({ url: u, filename: u.split("/").pop(), content_type: "" })) }); }, [mine?.id]);
+  useEffect(() => {
+    if (mine) setForm({ description: mine.description, url: mine.url || "", files: (mine.files || []).map((u) => ({ url: u, filename: u.split("/").pop(), content_type: "" })) });
+    // We intentionally key this only on the submission id so we don't keep overwriting local edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mine?.id]);
   const submit = async (e) => {
     e.preventDefault();
     setErr(""); setLoading(true);
@@ -259,10 +263,10 @@ function SubmissionsPanel({ project, submissions, isClient, reload }) {
               {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm text-[#D4AF37]">View deliverable <ExternalLink size={12} /></a>}
               {s.files && s.files.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2" data-testid={`submission-files-${s.id}`}>
-                  {s.files.map((u, i) => {
-                    const token = localStorage.getItem("ab_token") || "";
+                  {s.files.map((u) => {
+                    const token = sessionStorage.getItem("ab_token") || "";
                     const full = u.startsWith("http") ? u : `${process.env.REACT_APP_BACKEND_URL}${u}${u.includes("?") ? "&" : "?"}auth=${token}`;
-                    return <a key={i} href={full} target="_blank" rel="noreferrer" className="block border border-white/10 bg-[#050614] aspect-square overflow-hidden hover:border-[#D4AF37]"><img src={full} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /></a>;
+                    return <a key={u} href={full} target="_blank" rel="noreferrer" className="block border border-white/10 bg-[#050614] aspect-square overflow-hidden hover:border-[#D4AF37]"><img src={full} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /></a>;
                   })}
                 </div>
               )}

@@ -81,10 +81,10 @@ export default function Landing() {
         {/* marquee strip */}
         <div className="relative border-y border-white/5 bg-[#050614]/40 backdrop-blur py-5 overflow-hidden">
           <div className="marquee text-slate-500 text-sm tracking-[0.3em] uppercase">
-            {[...Array(2)].map((_, k) => (
+            {["a", "b"].map((k) => (
               <div key={k} className="flex gap-12">
-                {["Branding", "Web Apps", "Motion", "Mobile", "Copy", "3D", "SEO", "Pitch Decks", "AI/ML", "Music"].map((c, i) => (
-                  <span key={i} className="inline-flex items-center gap-3">
+                {["Branding", "Web Apps", "Motion", "Mobile", "Copy", "3D", "SEO", "Pitch Decks", "AI/ML", "Music"].map((c) => (
+                  <span key={`${k}-${c}`} className="inline-flex items-center gap-3">
                     <Sparkles size={12} className="text-[#D4AF37]" /> {c}
                   </span>
                 ))}

@@ -11,7 +11,7 @@ export default function FileUploader({ value = [], onChange, max = 5, accept = "
   const fullUrl = (relUrl) => {
     if (!relUrl) return "";
     if (relUrl.startsWith("http")) return relUrl;
-    const token = localStorage.getItem("ab_token") || "";
+    const token = sessionStorage.getItem("ab_token") || "";
     const sep = relUrl.includes("?") ? "&" : "?";
     return `${API_BASE.replace(/\/api$/, "")}${relUrl}${token ? `${sep}auth=${token}` : ""}`;
   };
@@ -50,7 +50,7 @@ export default function FileUploader({ value = [], onChange, max = 5, accept = "
           {value.map((f, i) => {
             const isImg = (f.content_type || "").startsWith("image/");
             return (
-              <div key={i} className="relative border border-white/10 bg-[#101230] p-2 group" data-testid={`file-item-${i}`}>
+              <div key={f.url || i} className="relative border border-white/10 bg-[#101230] p-2 group" data-testid={`file-item-${i}`}>
                 {isImg ? (
                   <img src={fullUrl(f.url)} alt={f.filename} className="w-full h-24 object-cover" />
                 ) : (

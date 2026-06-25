@@ -1,0 +1,29 @@
+{
+  "summary": "Code-quality refactor regression pass (localStorage→sessionStorage, catch logging, stable keys). All critical user-facing flows verified end-to-end with no regressions detected.",
+  "tested_scope": ["backend", "frontend", "auth", "integration"],
+  "passed": [
+    "Backend: POST /api/auth/login client@demo.com → 200, returns user + token (jwt). httpOnly access_token cookie set.",
+    "Backend: GET /api/auth/me works with both Bearer header (Authorization: Bearer <token>) → 200 and httpOnly cookie alone → 200.",
+    "Backend: GET /api/notifications → 200, includes existing 'new_applicant' notification (kind=new_applicant) – flow from previous iteration intact.",
+    "Backend: POST /api/upload (multipart image/png) → 200 with {id,url,content_type,filename}. GET /api/files/{path} via Bearer header → 200; via ?auth= query param → 200.",
+    "Frontend: /login page loads, login with client@demo.com / demo1234 redirects to /dashboard.",
+    "Frontend: After login sessionStorage.ab_token IS present; localStorage.ab_token is NOT present (refactor verified). Only PostHog-related keys remain in localStorage.",
+    "Frontend: Dashboard renders 'As Client (3)' tab with project cards (Notif retest, Test Notif Project, Logo for cafe).",
+    "Frontend: Header notification bell shows badge '1', is clickable and opens dropdown without error.",
+    "Frontend: /browse loads without errors after login.",
+    "Frontend: /post page renders FileUploader (data-testid=file-uploader-btn present and visible).",
+    "Frontend integration: Upload small PNG via FileUploader → preview tile (data-testid=file-item-0) renders with <img src='/api/files/...?auth=<token>'> and the image fetches successfully (200) using sessionStorage token both via ?auth= and Bearer header.",
+    "Frontend: After page reload while logged in, /api/auth/me returns 200 (httpOnly cookie keeps session alive even though sessionStorage may be cleared on tab close).",
+    "Frontend: Logout (header icon button) clears sessionStorage.ab_token (now null) and /api/auth/me subsequently returns 401 – session and cookie both invalidated.",
+    "Console: 0 console errors observed across the full flow."
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": [
+    "Post-project route is /post (not /post-project). FileUploader confirmed under that route.",
+    "Logout control is icon-only button in header (last header button); no data-testid='logout-btn' exists – minor maintainability note, not a regression."
+  ]
+}
