@@ -147,6 +147,7 @@ def public_user(u: dict) -> dict:
         "cv_url": u.get("cv_url", ""),
         "social_links": u.get("social_links", {}),
         "former_projects": u.get("former_projects", []),
+        "payout_methods": u.get("payout_methods", {}),  # {paypal_email, visa_last4, bank_iban, bank_name, wise_email, crypto_wallet}
         "trust_points": compute_trust(u),
     }
 
@@ -273,6 +274,7 @@ class ProfileUpdate(BaseModel):
     cv_url: Optional[str] = None
     social_links: Optional[dict] = None
     former_projects: Optional[List[dict]] = None
+    payout_methods: Optional[dict] = None
 
 class EmailVerifyReq(BaseModel):
     code: str = Field(min_length=4, max_length=8)

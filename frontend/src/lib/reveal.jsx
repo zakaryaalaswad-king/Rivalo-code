@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-// Reveals children once they intersect the viewport.
+// Toggles `is-visible` every time the element enters/leaves the viewport.
+// Fires on both scroll-down AND scroll-up — not a one-shot reveal.
 export function useReveal(opts = {}) {
   const ref = useRef(null);
   const [shown, setShown] = useState(false);
@@ -8,14 +9,9 @@ export function useReveal(opts = {}) {
     if (!ref.current) return;
     const io = new IntersectionObserver(
       (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setShown(true);
-            io.unobserve(e.target);
-          }
-        });
+        entries.forEach((e) => setShown(e.isIntersecting));
       },
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.12, ...opts }
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.12, ...opts }
     );
     io.observe(ref.current);
     return () => io.disconnect();
@@ -23,12 +19,14 @@ export function useReveal(opts = {}) {
   return { ref, shown };
 }
 
-export function Reveal({ children, delay = 0, as: Tag = "div", className = "", ...rest }) {
+// direction: "up" (default) | "down" | "left" | "right" | "scale"
+export function Reveal({ children, delay = 0, direction = "up", as: Tag = "div", className = "", ...rest }) {
   const { ref, shown } = useReveal();
+  const variant = `reveal-${direction}`;
   return (
     <Tag
       ref={ref}
-      className={`${className} reveal-on-scroll ${shown ? "is-visible" : ""}`}
+      className={`${className} reveal-on-scroll ${variant} ${shown ? "is-visible" : ""}`}
       style={{ transitionDelay: `${delay}ms` }}
       {...rest}
     >

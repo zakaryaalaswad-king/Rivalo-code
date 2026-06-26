@@ -5,7 +5,7 @@ import FileUploader from "../components/FileUploader";
 import TrustRing from "../components/TrustRing";
 import VerifyEmailModal from "../components/VerifyEmailModal";
 import { useNavigate } from "react-router-dom";
-import { Camera, CheckCircle2, AlertCircle, Linkedin, Twitter, Instagram, Github, Globe, Plus, Trash2, Award, Trophy, Sparkles } from "lucide-react";
+import { Camera, CheckCircle2, AlertCircle, Linkedin, Twitter, Instagram, Github, Globe, Plus, Trash2, Award, Trophy, Sparkles, CreditCard, Wallet, Bitcoin, Mail } from "lucide-react";
 
 const SOCIAL_FIELDS = [
   { k: "linkedin", icon: Linkedin, label: "LinkedIn URL" },
@@ -42,6 +42,7 @@ export default function Profile() {
         portfolio: (user.portfolio || []).map((u) => ({ url: u, filename: u.split("/").pop(), content_type: "" })),
         social_links: { ...(user.social_links || {}) },
         former_projects: [...(user.former_projects || [])],
+        payout_methods: { ...(user.payout_methods || {}) },
       });
     }
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -50,6 +51,7 @@ export default function Profile() {
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setSocial = (k, v) => setForm((f) => ({ ...f, social_links: { ...f.social_links, [k]: v } }));
+  const setPayout = (k, v) => setForm((f) => ({ ...f, payout_methods: { ...f.payout_methods, [k]: v } }));
   const addProj = () => setForm((f) => ({ ...f, former_projects: [...f.former_projects, { title: "", url: "", image: "", description: "" }] }));
   const setProj = (i, k, v) => setForm((f) => ({ ...f, former_projects: f.former_projects.map((p, idx) => idx === i ? { ...p, [k]: v } : p) }));
   const removeProj = (i) => setForm((f) => ({ ...f, former_projects: f.former_projects.filter((_, idx) => idx !== i) }));
@@ -87,6 +89,7 @@ export default function Profile() {
         skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
         portfolio: form.portfolio.map((p) => p.url),
         former_projects: form.former_projects.filter((p) => p.title || p.url),
+        payout_methods: form.payout_methods,
       };
       await api.patch("/users/me", payload);
       await refresh();
@@ -218,9 +221,7 @@ export default function Profile() {
 
           <Card title="Trust ladder">
             <TrustChecklist user={user} />
-          </Card>
-
-          {err && <div className="text-red-400 text-sm">{err}</div>}
+          </Card>}
           {success && <div className="text-[#22C55E] text-sm inline-flex items-center gap-2"><Sparkles size={14}/>{success}</div>}
           <div className="flex gap-3">
             <button type="button" onClick={() => nav(-1)} className="btn-ghost" data-testid="profile-cancel-btn">Cancel</button>
@@ -245,6 +246,24 @@ function Card({ title, children }) {
 function Field({ label, children }) {
   return (<div><label className="text-xs text-muted">{label}</label><div className="mt-1">{children}</div></div>);
 }
+function PayField({ icon, label, value, onChange, placeholder, testid }) {
+  return (
+    <div>
+      <label className="text-xs text-muted inline-flex items-center gap-1.5">{icon} {label}</label>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full mt-1 px-4 py-2.5" data-testid={testid} />
+    </div>
+  );
+}
+
+const VisaIcon = () => (
+  <svg width="22" height="14" viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="20" rx="3" fill="#1A1F71"/><text x="16" y="14" textAnchor="middle" fontFamily="Arial,sans-serif" fontWeight="900" fontSize="9" fill="#F8FAFC" letterSpacing="0.5">VISA</text></svg>
+);
+const PayPalIcon = () => (
+  <svg width="22" height="14" viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="20" rx="3" fill="#F8FAFC"/><text x="16" y="14" textAnchor="middle" fontFamily="Arial,sans-serif" fontWeight="900" fontSize="7" fill="#003087" letterSpacing="0">PayPal</text></svg>
+);
+const WiseIcon = () => (
+  <svg width="22" height="14" viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="20" rx="3" fill="#163300"/><text x="16" y="14" textAnchor="middle" fontFamily="Arial,sans-serif" fontWeight="900" fontSize="9" fill="#9FE870">wise</text></svg>
+);
 
 function TrustChecklist({ user }) {
   const items = [

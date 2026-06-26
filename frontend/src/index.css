@@ -88,18 +88,18 @@ h1, h2, h3, .font-display {
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
 }
 
-/* ---------------- Buttons (soft edges + smooth click) ---------------- */
-button { border-radius: 10px; }
+/* ---------------- Buttons (softer edges) ---------------- */
+button { border-radius: 14px; }
 
 .btn-primary {
   background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
   color: #F8FAFC; font-weight: 600;
   padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+  border-radius: 16px;
   transition: transform 180ms cubic-bezier(.2,.7,.2,1), box-shadow 220ms ease, background 220ms ease;
   box-shadow: 0 4px 14px -3px rgba(59,130,246,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
 }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -4px rgba(59,130,246,0.6); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 26px -4px rgba(59,130,246,0.6); }
 .btn-primary:active { transform: translateY(0) scale(0.985); transition-duration: 80ms; box-shadow: 0 2px 8px -2px rgba(59,130,246,0.55); }
 .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
@@ -107,25 +107,27 @@ button { border-radius: 10px; }
   background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
   color: #F8FAFC; font-weight: 600;
   padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+  border-radius: 16px;
   transition: transform 180ms cubic-bezier(.2,.7,.2,1), box-shadow 220ms ease;
   box-shadow: 0 4px 14px -3px rgba(34,197,94,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
 }
-.btn-accent:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -4px rgba(34,197,94,0.6); }
+.btn-accent:hover { transform: translateY(-1px); box-shadow: 0 10px 26px -4px rgba(34,197,94,0.6); }
 .btn-accent:active { transform: translateY(0) scale(0.985); transition-duration: 80ms; }
 
 .btn-ghost {
   border: 1px solid rgba(255,255,255,0.12); color: #F8FAFC;
-  padding: 0.75rem 1.5rem; border-radius: 12px; background: transparent;
+  padding: 0.75rem 1.5rem; border-radius: 16px; background: transparent;
   transition: all 200ms ease;
 }
 .btn-ghost:hover { border-color: #3B82F6; background: rgba(59,130,246,0.06); }
 .btn-ghost:active { transform: scale(0.985); }
 
+.btn-pill { border-radius: 9999px; }
+
 .card {
   background: rgba(30,41,59,0.6);
   border: 1px solid rgba(148,163,184,0.12);
-  border-radius: 16px;
+  border-radius: 20px;
   backdrop-filter: blur(12px);
 }
 
@@ -167,12 +169,29 @@ button { border-radius: 10px; }
   opacity: 0.05; mix-blend-mode: overlay;
 }
 
+/* ---------------- Reveal-on-scroll (re-fires both directions) ---------------- */
 .reveal-on-scroll {
-  opacity: 0; transform: translateY(28px);
-  transition: opacity 0.85s cubic-bezier(.2,.7,.2,1), transform 0.85s cubic-bezier(.2,.7,.2,1);
-  will-change: opacity, transform;
+  opacity: 0;
+  transition:
+    opacity 720ms cubic-bezier(.22,.68,.32,1),
+    transform 760ms cubic-bezier(.22,.68,.32,1),
+    filter 600ms cubic-bezier(.22,.68,.32,1);
+  will-change: opacity, transform, filter;
+  filter: blur(4px);
 }
-.reveal-on-scroll.is-visible { opacity: 1; transform: none; }
+.reveal-up    { transform: translate3d(0, 36px, 0); }
+.reveal-down  { transform: translate3d(0, -36px, 0); }
+.reveal-left  { transform: translate3d(-48px, 0, 0); }
+.reveal-right { transform: translate3d(48px, 0, 0); }
+.reveal-scale { transform: scale(0.94); }
+
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translate3d(0,0,0) scale(1);
+  filter: blur(0);
+}
+
+/* legacy one-shot still used in some modals */
 .reveal { opacity: 0; transform: translateY(16px); animation: reveal 0.7s cubic-bezier(.2,.7,.2,1) forwards; }
 @keyframes reveal { to { opacity: 1; transform: none; } }
 
@@ -188,7 +207,7 @@ input, textarea, select {
   background: rgba(30,41,59,0.6) !important;
   color: #F8FAFC !important;
   border: 1px solid rgba(148,163,184,0.18) !important;
-  border-radius: 10px !important;
+  border-radius: 14px !important;
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 input:focus, textarea:focus, select:focus {

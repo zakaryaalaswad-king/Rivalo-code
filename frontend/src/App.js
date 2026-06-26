@@ -13,6 +13,9 @@ import Dashboard from "./pages/Dashboard";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import HowItWorks from "./pages/HowItWorks";
 import Profile from "./pages/Profile";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Footer from "./components/Footer";
 import { Toaster } from "sonner";
 
 function ProtectedRoute({ children }) {
@@ -40,8 +43,11 @@ function Shell() {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <Footer />
       <AiChat />
       <Toaster theme="dark" />
     </div>
