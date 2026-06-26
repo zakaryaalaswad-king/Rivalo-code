@@ -28,7 +28,15 @@
 - Dashboard with dual-role tabs ("As Client" / "As Freelancer") + live countdown timers.
 - Landing page: hero with stats, How it works, categories grid, dual CTA panels.
 
-## Round A iteration (2026-02-25)
+## Iteration 4 — Theme, verification, profile, trust points, AI (2026-02-26)
+- **Theme**: full swap to `#0F172A` bg / `#3B82F6` primary blue / `#22C55E` green accent / `#94A3B8` muted text + **Manrope** font. Soft 10–12px button radii, smooth click-shrink animation (`transform scale(0.985)` on `:active`), gradient primary CTAs with hover lift + tinted shadow. Logo wedges recoloured blue + green.
+- **Email verification**: 6-digit OTP via Resend (`db.email_codes`, 15-min expiry, 5-attempt lockout). `POST /api/auth/send-verification`, `POST /api/auth/verify-email`. New `require_verified` dependency gates `POST /api/projects` and `POST /api/projects/{id}/apply` (403 until verified). Code also logged at INFO for sandbox.
+- **Profile management page** (`/profile`): avatar upload, age, phone, location, languages, hourly rate, bio, skills, CV upload (PDF), 6 social links (LinkedIn/Twitter/Instagram/Behance/GitHub/Website), repeatable Former Projects, live Trust Ladder checklist. Avatar dropdown in header (initial-gradient avatar → dropdown with name/email/trust-chip/profile-management/dashboard/post/logout).
+- **Trust points (max 100)**: avatar 5 · email 10 · phone 5 · phone_verified 5 · CV 10 · bio≥120 5 · skills≥5 5 · portfolio≥3 5 · socials≥2 5 · socials≥4 5 · former_projects≥3 10 · wins 1/3/5 → 15/15/10. Visible TrustRing on profile + chip in avatar menu.
+- **AI Coach** (`POST /api/ai/chat`): `emergentintegrations.llm.chat.LlmChat` + `gpt-4o-mini` + Emergent LLM key. Hard-prompted not to write deliverables / disclose competitors / facilitate cheating. Floating chat widget mounted globally.
+- **AI Vetting Task generator** (`POST /api/ai/vetting-task`): given a project + chosen freelancers, returns JSON-structured short vetting challenge (≤25% of window, single deliverable, eval criteria).
+
+
 - **Branded emails**: `email_shell()` wrapper with inline SVG Rivalo logo, gold heading, dark-luxury layout. Used in approve, rejection, and winner emails.
 - **Object storage**: `POST /api/upload` (multipart, 10MB cap, MIME whitelist: images / PDF / mp4 / mov / txt / csv / zip). Returns `/api/files/{path}` URL stored on documents. `GET /api/files/{path}` serves files with Bearer or `?auth=token` (for `<img>` src). Reusable `<FileUploader />` integrated into Post Project (reference attachments) and submission form (deliverable files). File metadata persisted in `db.files` with `is_deleted` soft-delete.
 - **In-app notifications**: `db.notifications` collection. Created on `new_applicant`, `approved`, `rejected`, `submission`, `won`. Header bell with unread badge, dropdown with last 50, polling every 25s, mark-all-read.
