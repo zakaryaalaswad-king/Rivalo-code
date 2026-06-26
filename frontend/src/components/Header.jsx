@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import Logo from "./Logo";
 import { LogOut, LayoutDashboard, PlusCircle, Compass, ChevronDown, User } from "lucide-react";
@@ -38,11 +38,12 @@ export default function Header() {
           <Logo size={28} animated />
           <span className="font-display text-2xl tracking-tight">Rival<span className="text-[#3B82F6]">o</span></span>
         </Link>
-        <nav className="hidden md:flex items-center gap-7">
-          <Link to="/browse" className="text-sm text-slate-300 hover:text-white" data-testid="nav-browse"><Compass size={14} className="inline mr-1.5" />Browse</Link>
-          <Link to="/how-it-works" className="text-sm text-slate-300 hover:text-white" data-testid="nav-how">How it works</Link>
+        <nav className="hidden md:flex items-center gap-2">
+          <NavLink to="/browse" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-browse"><span className="inline-flex items-center gap-2"><Compass size={14} /> Browse</span></NavLink>
+          <NavLink to="/how-it-works" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-how">How it works</NavLink>
+          <NavLink to="/pricing" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-pricing">Pricing</NavLink>
           {user && user !== false && (
-            <Link to="/dashboard" className="text-sm text-slate-300 hover:text-white" data-testid="nav-dashboard"><LayoutDashboard size={14} className="inline mr-1.5" />Dashboard</Link>
+            <NavLink to="/dashboard" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-dashboard"><span className="inline-flex items-center gap-2"><LayoutDashboard size={14} /> Dashboard</span></NavLink>
           )}
         </nav>
         <div className="flex items-center gap-3">

@@ -169,6 +169,45 @@ button { border-radius: 14px; }
   opacity: 0.05; mix-blend-mode: overlay;
 }
 
+/* ---------------- Animated glassy nav frames ---------------- */
+.nav-glass {
+  position: relative;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(148,163,184,0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 240ms ease, background 240ms ease, transform 200ms ease, box-shadow 240ms ease;
+  overflow: hidden;
+}
+.nav-glass::before {
+  content: '';
+  position: absolute; inset: -2px;
+  background: linear-gradient(120deg, transparent 35%, rgba(59,130,246,0.55) 50%, rgba(34,197,94,0.45) 60%, transparent 70%);
+  background-size: 250% 250%;
+  border-radius: 14px;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  padding: 1px;
+  opacity: 0; transition: opacity 220ms ease;
+  animation: nav-glass-trace 4.5s linear infinite;
+  pointer-events: none;
+}
+.nav-glass:hover { background: rgba(255,255,255,0.05); border-color: rgba(59,130,246,0.35); transform: translateY(-1px); }
+.nav-glass:hover::before { opacity: 1; }
+.nav-glass.active {
+  background: rgba(59,130,246,0.10);
+  border-color: rgba(59,130,246,0.45);
+  color: #93C5FD;
+  box-shadow: 0 4px 14px -3px rgba(59,130,246,0.35);
+}
+.nav-glass.active::before { opacity: 1; }
+@keyframes nav-glass-trace {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
 /* ---------------- Reveal-on-scroll (re-fires both directions) ---------------- */
 .reveal-on-scroll {
   opacity: 0;

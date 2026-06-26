@@ -41,7 +41,7 @@ export default function FileUploader({ value = [], onChange, max = 5, accept = "
     <div data-testid="file-uploader">
       <input ref={ref} type="file" accept={accept} multiple onChange={onPick} className="hidden" data-testid="file-uploader-input" />
       <button type="button" onClick={() => ref.current?.click()} disabled={busy || value.length >= max}
-        className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 hover:border-[#D4AF37] text-sm disabled:opacity-50" data-testid="file-uploader-btn">
+        className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 hover:border-[#3B82F6] text-sm disabled:opacity-50" data-testid="file-uploader-btn">
         <Upload size={14} /> {busy ? "Uploading…" : `Add files (${value.length}/${max})`}
       </button>
       {err && <div className="text-red-400 text-xs mt-2">{err}</div>}

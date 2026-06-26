@@ -118,6 +118,15 @@ export default function Profile() {
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
+            <div className="text-xs tracking-widest uppercase text-muted">Plan</div>
+            <div className="font-display text-2xl capitalize flex items-center gap-1.5 justify-end" data-testid="profile-plan">
+              {user.plan === "free" ? <span className="text-muted">Free</span> :
+               user.plan === "basic" ? <span style={{color:"#22C55E"}}>🟢 Basic</span> :
+               user.plan === "pro" ? <span style={{color:"#3B82F6"}}>🔵 Pro</span> :
+               user.plan === "business" ? <span style={{color:"#A855F7"}}>🟣 Business</span> : user.plan}
+            </div>
+          </div>
+          <div className="text-right">
             <div className="text-xs tracking-widest uppercase text-muted">Wins</div>
             <div className="font-display text-3xl text-[#22C55E] flex items-center gap-2 justify-end" data-testid="profile-wins"><Trophy size={20}/>{user.wins || 0}</div>
           </div>

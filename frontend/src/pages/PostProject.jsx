@@ -39,7 +39,7 @@ export default function PostProject() {
   return (
     <div className="max-w-3xl mx-auto px-6 md:px-10 py-12">
       <div className="text-center mb-10">
-        <Trophy size={32} className="text-[#D4AF37] mx-auto" />
+        <Trophy size={32} className="text-[#3B82F6] mx-auto" />
         <h1 className="font-display text-4xl mt-4">Post a brief</h1>
         <p className="text-slate-400 mt-2 text-sm">Set the rules. Three competitors will battle for your bounty.</p>
       </div>
@@ -74,15 +74,15 @@ export default function PostProject() {
           <FileUploader value={form.attachments} onChange={(arr) => setForm((f) => ({ ...f, attachments: arr }))} max={6} />
         </Field>
 
-        <div className="bg-[#101230] border border-[#D4AF37]/30 p-4 text-sm text-slate-300">
-          <div className="text-[#D4AF37] uppercase tracking-widest text-[10px] mb-2">Escrow</div>
+        <div className="bg-[#101230] border border-[#3B82F6]/30 p-4 text-sm text-slate-300">
+          <div className="text-[#3B82F6] uppercase tracking-widest text-[10px] mb-2">Escrow</div>
           The bounty (${form.budget}) is held by Stripe and released only when you pick a winner.
         </div>
 
         {err && <div className="text-red-400 text-sm" data-testid="post-error">{err}</div>}
         <div className="flex gap-3">
           <button type="button" onClick={() => nav(-1)} className="px-6 py-3 border border-white/20 hover:bg-white/5" data-testid="post-cancel-btn">Cancel</button>
-          <button disabled={loading} className="flex-1 bg-[#D4AF37] text-black py-3 font-semibold hover:bg-[#F3E5AB] transition-colors disabled:opacity-50" data-testid="post-submit-btn">
+          <button disabled={loading} className="flex-1 bg-[#3B82F6] text-black py-3 font-semibold hover:bg-[#60A5FA] transition-colors disabled:opacity-50" data-testid="post-submit-btn">
             {loading ? "Preparing checkout…" : `Fund $${form.budget} & open the arena`}
           </button>
         </div>

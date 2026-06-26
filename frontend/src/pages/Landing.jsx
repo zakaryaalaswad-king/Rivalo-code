@@ -46,7 +46,7 @@ export default function Landing() {
               <Reveal delay={120} direction="up">
                 <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl tracking-tighter leading-[0.95] mt-6">
                   Two rivals enter.<br />
-                  <span className="bg-gradient-to-r from-[#3B82F6] via-[#60A5FA] to-[#22C55E] bg-clip-text text-transparent">One walks away gold.</span>
+                  <span className="bg-gradient-to-r from-[#3B82F6] via-[#60A5FA] to-[#22C55E] bg-clip-text text-transparent">One claims the win.</span>
                 </h1>
               </Reveal>
               <Reveal delay={240} direction="left">

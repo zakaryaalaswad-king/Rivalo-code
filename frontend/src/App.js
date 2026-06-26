@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider, useAuth } from "./lib/auth";
 import Header from "./components/Header";
 import AiChat from "./components/AiChat";
+import ScrollToTop from "./components/ScrollToTop";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -15,6 +16,7 @@ import HowItWorks from "./pages/HowItWorks";
 import Profile from "./pages/Profile";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Pricing from "./pages/Pricing";
 import Footer from "./components/Footer";
 import { Toaster } from "sonner";
 
@@ -31,11 +33,13 @@ function Shell() {
     <div className="App">
       <div className="mesh-bg" aria-hidden="true"><span /></div>
       <div className="cyber-grid" aria-hidden="true" />
+      <ScrollToTop />
       <Header />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/browse" element={<Browse />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />

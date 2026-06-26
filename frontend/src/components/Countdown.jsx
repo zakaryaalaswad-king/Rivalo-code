@@ -22,8 +22,8 @@ export default function Countdown({ deadline, size = "md" }) {
   return (
     <div className="flex gap-2 font-mono" data-testid="countdown">
       {[["DAYS", t.d], ["HRS", t.h], ["MIN", t.m], ["SEC", t.s]].map(([l, v]) => (
-        <div key={l} className={`bg-[#101230] border border-[#D4AF37]/30 ${cellBase} text-center`}>
-          <div className={`${num} text-[#D4AF37] leading-none`}>{String(v).padStart(2, "0")}</div>
+        <div key={l} className={`bg-[#101230] border border-[#3B82F6]/30 ${cellBase} text-center`}>
+          <div className={`${num} text-[#3B82F6] leading-none`}>{String(v).padStart(2, "0")}</div>
           <div className="text-[10px] text-slate-400 tracking-widest mt-1">{l}</div>
         </div>
       ))}

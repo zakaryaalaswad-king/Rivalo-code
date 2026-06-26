@@ -29,7 +29,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <div className="inline-block"><Logo size={42} animated /></div>
-          <h1 className="font-display text-4xl mt-4">Welcome back to <span className="text-[#D4AF37]">Rivalo</span></h1>
+          <h1 className="font-display text-4xl mt-4">Welcome back to <span className="text-[#3B82F6]">Rivalo</span></h1>
           <p className="text-slate-400 mt-2 text-sm">Pick up where the arena left you.</p>
         </div>
         <form onSubmit={onSubmit} className="bg-[#0A0C22] border border-white/10 p-8 space-y-5" data-testid="login-form">

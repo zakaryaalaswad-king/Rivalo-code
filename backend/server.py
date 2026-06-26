@@ -148,6 +148,8 @@ def public_user(u: dict) -> dict:
         "social_links": u.get("social_links", {}),
         "former_projects": u.get("former_projects", []),
         "payout_methods": u.get("payout_methods", {}),  # {paypal_email, visa_last4, bank_iban, bank_name, wise_email, crypto_wallet}
+        "plan": u.get("plan", "free"),
+        "plan_expires_at": u.get("plan_expires_at"),
         "trust_points": compute_trust(u),
     }
 
@@ -316,6 +318,16 @@ class PickWinnerReq(BaseModel):
 class CheckoutInitReq(BaseModel):
     project_id: str
     origin_url: str
+
+class SubscriptionInitReq(BaseModel):
+    plan: Literal["basic", "pro", "business"]
+    origin_url: str
+
+PLANS = {
+    "basic":    {"name": "Basic",    "price": 7.99,  "currency": "eur", "color": "#22C55E"},
+    "pro":      {"name": "Pro",      "price": 14.99, "currency": "eur", "color": "#3B82F6"},
+    "business": {"name": "Business", "price": 29.99, "currency": "eur", "color": "#A855F7"},
+}
 
 CATEGORIES = [
     "Graphic Design", "Web Development", "Mobile Development", "Writing & Translation",
@@ -754,13 +766,21 @@ async def payment_status(session_id: str, request: Request):
             {"session_id": session_id},
             {"$set": {"payment_status": "paid", "status": status.status, "paid_at": now_iso()}},
         )
-        # activate project
-        project_id = tx["metadata"].get("project_id")
-        if project_id:
-            await db.projects.update_one(
-                {"id": project_id, "payment_status": {"$ne": "paid"}},
-                {"$set": {"payment_status": "paid", "status": "open"}},
-            )
+        meta = tx.get("metadata") or {}
+        if tx.get("kind") == "subscription" or meta.get("kind") == "subscription":
+            uid = meta.get("user_id") or tx.get("user_id")
+            plan = meta.get("plan") or tx.get("plan")
+            if uid and plan:
+                expires = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+                await db.users.update_one({"id": uid}, {"$set": {"plan": plan, "plan_expires_at": expires}})
+                await push_notification(uid, "subscription", f"{PLANS[plan]['name']} active", f"Your {PLANS[plan]['name']} subscription is active for 30 days.", "/profile")
+        else:
+            project_id = tx["metadata"].get("project_id")
+            if project_id:
+                await db.projects.update_one(
+                    {"id": project_id, "payment_status": {"$ne": "paid"}},
+                    {"$set": {"payment_status": "paid", "status": "open"}},
+                )
     else:
         await db.payment_transactions.update_one(
             {"session_id": session_id},
@@ -872,6 +892,45 @@ async def list_notifications(user: dict = Depends(get_current_user)):
 async def mark_all_read(user: dict = Depends(get_current_user)):
     await db.notifications.update_many({"user_id": user["id"], "read": False}, {"$set": {"read": True}})
     return {"ok": True}
+
+# ------------------------------------------------------------------ Subscriptions
+@api.get("/subscriptions/plans")
+async def list_plans():
+    return PLANS
+
+@api.post("/subscriptions/checkout")
+async def subscribe_checkout(body: SubscriptionInitReq, request: Request, user: dict = Depends(require_verified)):
+    if body.plan not in PLANS:
+        raise HTTPException(400, "Unknown plan")
+    plan = PLANS[body.plan]
+    host_url = str(request.base_url).rstrip("/")
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_co = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    origin = body.origin_url.rstrip("/")
+    success_url = f"{origin}/payment/success?session_id={{CHECKOUT_SESSION_ID}}&sub_plan={body.plan}"
+    cancel_url = f"{origin}/pricing"
+    co_req = CheckoutSessionRequest(
+        amount=float(plan["price"]),
+        currency=plan["currency"],
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={"kind": "subscription", "plan": body.plan, "user_id": user["id"]},
+    )
+    session = await stripe_co.create_checkout_session(co_req)
+    await db.payment_transactions.insert_one({
+        "id": new_id(),
+        "session_id": session.session_id,
+        "user_id": user["id"],
+        "amount": plan["price"],
+        "currency": plan["currency"],
+        "kind": "subscription",
+        "plan": body.plan,
+        "payment_status": "initiated",
+        "status": "open",
+        "metadata": {"kind": "subscription", "plan": body.plan, "user_id": user["id"]},
+        "created_at": now_iso(),
+    })
+    return {"url": session.url, "session_id": session.session_id, "amount": plan["price"], "currency": plan["currency"]}
 
 # ------------------------------------------------------------------ AI Coach & Vetting Task
 RIVALO_COACH_SYS = (

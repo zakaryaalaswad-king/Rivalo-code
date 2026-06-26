@@ -79,8 +79,8 @@ export default function ProjectDetail() {
 
         <div className="space-y-6">
           {project.status === "in_progress" && project.competition_deadline && (
-            <div className="bg-[#0A0C22] border border-[#D4AF37]/40 p-6 tracing-beam">
-              <div className="text-[#D4AF37] uppercase tracking-widest text-xs">Showdown ends in</div>
+            <div className="bg-[#0A0C22] border border-[#3B82F6]/40 p-6 tracing-beam">
+              <div className="text-[#3B82F6] uppercase tracking-widest text-xs">Showdown ends in</div>
               <div className="mt-4"><Countdown deadline={project.competition_deadline} size="lg" /></div>
             </div>
           )}
@@ -96,7 +96,7 @@ export default function ProjectDetail() {
           {isAnon && project.status === "open" && (
             <div className="bg-[#0A0C22] border border-white/10 p-6">
               <p className="text-slate-300">Want to compete?</p>
-              <button onClick={() => nav("/login", { state: { from: `/projects/${project.id}` } })} className="mt-4 w-full bg-[#D4AF37] text-black py-3 font-semibold hover:bg-[#F3E5AB]" data-testid="detail-login-cta">Log in to apply</button>
+              <button onClick={() => nav("/login", { state: { from: `/projects/${project.id}` } })} className="mt-4 w-full bg-[#3B82F6] text-black py-3 font-semibold hover:bg-[#60A5FA]" data-testid="detail-login-cta">Log in to apply</button>
             </div>
           )}
 
@@ -108,7 +108,7 @@ export default function ProjectDetail() {
               <div className="text-xs tracking-widest uppercase text-slate-400 mb-2">Approved seats</div>
               <div className="space-y-2">
                 {applications.filter((a) => a.status === "approved").map((a) => (
-                  <div key={a.id} className="flex items-center gap-2"><CheckCircle2 size={14} className="text-[#D4AF37]" /> {a.user_name}</div>
+                  <div key={a.id} className="flex items-center gap-2"><CheckCircle2 size={14} className="text-[#3B82F6]" /> {a.user_name}</div>
                 ))}
               </div>
             </div>
@@ -126,7 +126,7 @@ function Page({ children }) {
 function Meta({ icon: I, label, value }) {
   return (
     <div className="bg-[#101230] border border-white/5 p-4">
-      <I size={14} className="text-[#D4AF37]" />
+      <I size={14} className="text-[#3B82F6]" />
       <div className="font-mono text-xl mt-2">{value}</div>
       <div className="text-[10px] tracking-widest text-slate-500 uppercase mt-1">{label}</div>
     </div>
@@ -136,7 +136,7 @@ function Meta({ icon: I, label, value }) {
 function StatusPill({ status }) {
   const map = {
     draft: { c: "text-slate-400 border-slate-500", t: "Draft" },
-    open: { c: "text-[#D4AF37] border-[#D4AF37]", t: "Open · accepting" },
+    open: { c: "text-[#3B82F6] border-[#3B82F6]", t: "Open · accepting" },
     in_progress: { c: "text-[#8B5CF6] border-[#8B5CF6]", t: "Live competition" },
     completed: { c: "text-green-400 border-green-400", t: "Completed" },
   };
@@ -161,12 +161,12 @@ function ApplyCard({ projectId, onApplied }) {
     finally { setLoading(false); }
   };
   return (
-    <form onSubmit={submit} className="bg-[#0A0C22] border border-[#D4AF37]/40 p-6" data-testid="apply-form">
-      <div className="text-[#D4AF37] uppercase tracking-widest text-xs">Apply to compete</div>
+    <form onSubmit={submit} className="bg-[#0A0C22] border border-[#3B82F6]/40 p-6" data-testid="apply-form">
+      <div className="text-[#3B82F6] uppercase tracking-widest text-xs">Apply to compete</div>
       <textarea value={pitch} onChange={(e) => setPitch(e.target.value)} required minLength={10} rows={4} placeholder="Why are you the right talent? Show your angle." className="w-full px-4 py-3 mt-4" data-testid="apply-pitch-input" />
       <input value={sample_url} onChange={(e) => setSample(e.target.value)} placeholder="Portfolio / sample URL (optional)" className="w-full px-4 py-3 mt-3" data-testid="apply-sample-input" />
       {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
-      <button disabled={loading} className="mt-4 w-full bg-[#D4AF37] text-black py-3 font-semibold hover:bg-[#F3E5AB] disabled:opacity-50" data-testid="apply-submit-btn">{loading ? "Sending…" : "Send application"}</button>
+      <button disabled={loading} className="mt-4 w-full bg-[#3B82F6] text-black py-3 font-semibold hover:bg-[#60A5FA] disabled:opacity-50" data-testid="apply-submit-btn">{loading ? "Sending…" : "Send application"}</button>
     </form>
   );
 }
@@ -188,7 +188,7 @@ function ApplicantsPanel({ projectId, applications, maxApprove, reload }) {
       <div className="mt-4 space-y-3 max-h-96 overflow-auto pr-2">
         {applications.length === 0 && <div className="text-slate-500 text-sm">No applicants yet. Hold tight.</div>}
         {applications.map((a) => (
-          <label key={a.id} className={`block border p-4 cursor-pointer transition-colors ${selected.includes(a.id) ? "border-[#D4AF37] bg-[#D4AF37]/5" : "border-white/10 hover:border-white/30"}`} data-testid={`applicant-${a.id}`}>
+          <label key={a.id} className={`block border p-4 cursor-pointer transition-colors ${selected.includes(a.id) ? "border-[#3B82F6] bg-[#3B82F6]/5" : "border-white/10 hover:border-white/30"}`} data-testid={`applicant-${a.id}`}>
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">{a.user_name}</div>
@@ -197,13 +197,13 @@ function ApplicantsPanel({ projectId, applications, maxApprove, reload }) {
               <input type="checkbox" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} data-testid={`applicant-check-${a.id}`} />
             </div>
             <div className="mt-3 text-sm text-slate-300">"{a.pitch}"</div>
-            {a.sample_url && <a href={a.sample_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#D4AF37]">Sample <ExternalLink size={10} /></a>}
+            {a.sample_url && <a href={a.sample_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#3B82F6]">Sample <ExternalLink size={10} /></a>}
           </label>
         ))}
       </div>
       <div className="mt-4 text-xs text-slate-400">Pick up to {maxApprove}. Approved freelancers get an email and the timer starts.</div>
       {err && <div className="text-red-400 text-sm mt-2">{err}</div>}
-      <button disabled={selected.length === 0 || loading} onClick={approve} className="mt-4 w-full bg-[#D4AF37] text-black py-3 font-semibold hover:bg-[#F3E5AB] disabled:opacity-30" data-testid="approve-btn">
+      <button disabled={selected.length === 0 || loading} onClick={approve} className="mt-4 w-full bg-[#3B82F6] text-black py-3 font-semibold hover:bg-[#60A5FA] disabled:opacity-30" data-testid="approve-btn">
         {loading ? "Opening arena…" : `Approve ${selected.length} & start competition`}
       </button>
     </div>
@@ -243,7 +243,7 @@ function SubmissionsPanel({ project, submissions, isClient, reload }) {
           <input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="Link to deliverable (Figma, Drive, GitHub, etc.)" className="w-full px-4 py-3" data-testid="submit-url-input" />
           <FileUploader value={form.files} onChange={(arr) => setForm((f) => ({ ...f, files: arr }))} max={8} />
           {err && <div className="text-red-400 text-sm">{err}</div>}
-          <button disabled={loading} className="bg-[#D4AF37] text-black px-6 py-3 font-semibold inline-flex items-center gap-2 hover:bg-[#F3E5AB] disabled:opacity-50" data-testid="submit-work-btn">
+          <button disabled={loading} className="bg-[#3B82F6] text-black px-6 py-3 font-semibold inline-flex items-center gap-2 hover:bg-[#60A5FA] disabled:opacity-50" data-testid="submit-work-btn">
             <Send size={14} /> {loading ? "Sending…" : mine ? "Update submission" : "Submit work"}
           </button>
         </form>
@@ -260,17 +260,17 @@ function SubmissionsPanel({ project, submissions, isClient, reload }) {
                 </div>
               </div>
               <div className="mt-3 text-sm text-slate-300 whitespace-pre-wrap">{s.description}</div>
-              {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm text-[#D4AF37]">View deliverable <ExternalLink size={12} /></a>}
+              {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm text-[#3B82F6]">View deliverable <ExternalLink size={12} /></a>}
               {s.files && s.files.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2" data-testid={`submission-files-${s.id}`}>
                   {s.files.map((u) => {
                     const token = sessionStorage.getItem("ab_token") || "";
                     const full = u.startsWith("http") ? u : `${process.env.REACT_APP_BACKEND_URL}${u}${u.includes("?") ? "&" : "?"}auth=${token}`;
-                    return <a key={u} href={full} target="_blank" rel="noreferrer" className="block border border-white/10 bg-[#050614] aspect-square overflow-hidden hover:border-[#D4AF37]"><img src={full} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /></a>;
+                    return <a key={u} href={full} target="_blank" rel="noreferrer" className="block border border-white/10 bg-[#050614] aspect-square overflow-hidden hover:border-[#3B82F6]"><img src={full} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /></a>;
                   })}
                 </div>
               )}
-              <button onClick={() => pickWinner(s.id)} className="mt-4 w-full bg-[#D4AF37] text-black py-2 font-semibold hover:bg-[#F3E5AB] inline-flex items-center justify-center gap-2" data-testid={`pick-winner-${s.id}`}>
+              <button onClick={() => pickWinner(s.id)} className="mt-4 w-full bg-[#3B82F6] text-black py-2 font-semibold hover:bg-[#60A5FA] inline-flex items-center justify-center gap-2" data-testid={`pick-winner-${s.id}`}>
                 <Crown size={14} /> Crown this winner
               </button>
             </div>
@@ -284,14 +284,14 @@ function SubmissionsPanel({ project, submissions, isClient, reload }) {
 function WinnerPanel({ project, submissions }) {
   const winner = submissions.find((s) => s.id === project.winner_submission_id);
   return (
-    <div className="bg-[#0A0C22] border border-[#D4AF37]/40 p-8" data-testid="winner-panel">
-      <div className="flex items-center gap-3"><Trophy className="text-[#D4AF37]" /> <div className="font-display text-3xl">Winner crowned</div></div>
+    <div className="bg-[#0A0C22] border border-[#3B82F6]/40 p-8" data-testid="winner-panel">
+      <div className="flex items-center gap-3"><Trophy className="text-[#3B82F6]" /> <div className="font-display text-3xl">Winner crowned</div></div>
       {winner ? (
         <div className="mt-6">
           <div className="text-xs tracking-widest uppercase text-slate-400">Champion</div>
           <div className="mt-2 text-2xl font-medium">{winner.user_name}</div>
           <div className="mt-4 text-slate-300 whitespace-pre-wrap">{winner.description}</div>
-          {winner.url && <a href={winner.url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm text-[#D4AF37]">View deliverable <ExternalLink size={12} /></a>}
+          {winner.url && <a href={winner.url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm text-[#3B82F6]">View deliverable <ExternalLink size={12} /></a>}
         </div>
       ) : (
         <div className="mt-4 text-slate-400">Winner has been chosen.</div>
