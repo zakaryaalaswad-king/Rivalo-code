@@ -42,11 +42,11 @@ export default function Login() {
             <input value={password} onChange={(e) => setPassword(e.target.value)} required type="password" className="w-full mt-2 px-4 py-3" data-testid="login-password-input" />
           </div>
           {err && <div className="text-red-400 text-sm" data-testid="login-error">{err}</div>}
-          <button disabled={loading} className="w-full cta-neon py-3 disabled:opacity-50" data-testid="login-submit-btn">
+          <button disabled={loading} className="w-full btn-primary disabled:opacity-50" data-testid="login-submit-btn">
             {loading ? "Signing in…" : "Sign in"}
           </button>
           <div className="text-sm text-slate-400 text-center">
-            New here? <Link to="/register" className="text-[#D4AF37] hover:underline">Create an account</Link>
+            New here? <Link to="/register" className="text-[#3B82F6] hover:underline">Create an account</Link>
           </div>
           <div className="text-xs text-slate-500 text-center border-t border-white/5 pt-4">
             Demo: <span className="font-mono">client@demo.com</span> / <span className="font-mono">demo1234</span>

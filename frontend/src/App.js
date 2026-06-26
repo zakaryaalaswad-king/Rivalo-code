@@ -2,6 +2,7 @@ import "./App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import Header from "./components/Header";
+import AiChat from "./components/AiChat";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -11,12 +12,13 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Dashboard from "./pages/Dashboard";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import HowItWorks from "./pages/HowItWorks";
+import Profile from "./pages/Profile";
 import { Toaster } from "sonner";
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
   const loc = useLocation();
-  if (user === null) return <div className="p-10 text-slate-500">Loading…</div>;
+  if (user === null) return <div className="p-10 text-muted">Loading…</div>;
   if (user === false) return <Navigate to="/login" state={{ from: loc.pathname }} replace />;
   return children;
 }
@@ -35,10 +37,12 @@ function Shell() {
         <Route path="/register" element={<Register />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
         <Route path="/post" element={<ProtectedRoute><PostProject /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <AiChat />
       <Toaster theme="dark" />
     </div>
   );

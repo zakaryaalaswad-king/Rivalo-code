@@ -5,9 +5,11 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 import os
+import re
 import asyncio
 import logging
 import uuid
+import random
 import bcrypt
 import jwt
 import resend
@@ -134,7 +136,40 @@ def public_user(u: dict) -> dict:
         "completed": u.get("completed", 0),
         "wins": u.get("wins", 0),
         "created_at": u.get("created_at"),
+        "age": u.get("age"),
+        "phone": u.get("phone", ""),
+        "phone_verified": u.get("phone_verified", False),
+        "email_verified": u.get("email_verified", False),
+        "location": u.get("location", ""),
+        "languages": u.get("languages", []),
+        "hourly_rate": u.get("hourly_rate"),
+        "available": u.get("available", True),
+        "cv_url": u.get("cv_url", ""),
+        "social_links": u.get("social_links", {}),
+        "former_projects": u.get("former_projects", []),
+        "trust_points": compute_trust(u),
     }
+
+def compute_trust(u: dict) -> int:
+    pts = 0
+    if u.get("avatar_url"): pts += 5
+    if u.get("email_verified"): pts += 10
+    if u.get("phone"): pts += 5
+    if u.get("phone_verified"): pts += 5
+    if u.get("cv_url"): pts += 10
+    if len((u.get("bio") or "")) >= 120: pts += 5
+    if len(u.get("skills") or []) >= 5: pts += 5
+    if len(u.get("portfolio") or []) >= 3: pts += 5
+    socials = u.get("social_links") or {}
+    n_soc = sum(1 for v in socials.values() if v)
+    if n_soc >= 2: pts += 5
+    if n_soc >= 4: pts += 5
+    if len(u.get("former_projects") or []) >= 3: pts += 10
+    wins = int(u.get("wins") or 0)
+    if wins >= 1: pts += 15
+    if wins >= 3: pts += 15
+    if wins >= 5: pts += 10
+    return min(pts, 100)
 
 async def get_current_user(request: Request) -> dict:
     token = request.cookies.get("access_token")
@@ -229,6 +264,27 @@ class ProfileUpdate(BaseModel):
     skills: Optional[List[str]] = None
     portfolio: Optional[List[str]] = None
     avatar_url: Optional[str] = None
+    age: Optional[int] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    languages: Optional[List[str]] = None
+    hourly_rate: Optional[float] = None
+    available: Optional[bool] = None
+    cv_url: Optional[str] = None
+    social_links: Optional[dict] = None
+    former_projects: Optional[List[dict]] = None
+
+class EmailVerifyReq(BaseModel):
+    code: str = Field(min_length=4, max_length=8)
+
+class AiChatReq(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    session_id: Optional[str] = None
+    context: Optional[str] = "general"  # general | client | freelancer
+
+class AiTaskReq(BaseModel):
+    project_id: str
+    freelancer_ids: List[str]
 
 class ProjectCreate(BaseModel):
     title: str = Field(min_length=3)
@@ -284,12 +340,24 @@ async def register(req: RegisterReq, response: Response):
         "rating": 0,
         "completed": 0,
         "wins": 0,
+        "email_verified": False,
+        "phone": "",
+        "phone_verified": False,
+        "age": None,
+        "location": "",
+        "languages": [],
+        "hourly_rate": None,
+        "available": True,
+        "cv_url": "",
+        "social_links": {},
+        "former_projects": [],
         "created_at": now_iso(),
     }
     await db.users.insert_one(user)
+    await issue_email_code(user)
     token = create_access_token(user["id"], email)
     response.set_cookie("access_token", token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
-    return {"user": public_user(user), "token": token}
+    return {"user": public_user(user), "token": token, "verification_sent": True}
 
 @api.post("/auth/login")
 async def login(req: LoginReq, response: Response):
@@ -309,6 +377,57 @@ async def logout(response: Response):
 @api.get("/auth/me")
 async def me(user: dict = Depends(get_current_user)):
     return public_user(user)
+
+async def require_verified(user: dict = Depends(get_current_user)) -> dict:
+    if not user.get("email_verified"):
+        raise HTTPException(403, "Please verify your email before performing this action.")
+    return user
+
+async def issue_email_code(user: dict):
+    code = f"{random.randint(0, 999999):06d}"
+    await db.email_codes.delete_many({"user_id": user["id"]})
+    await db.email_codes.insert_one({
+        "id": new_id(),
+        "user_id": user["id"],
+        "code": code,
+        "created_at": now_iso(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
+        "attempts": 0,
+    })
+    body = f"""
+      <p style='margin:0 0 12px;'>Hi {user.get('name','')},</p>
+      <p style='margin:0 0 16px;'>Your Rivalo verification code:</p>
+      <div style='font-family:monospace;font-size:32px;letter-spacing:8px;color:#3B82F6;background:rgba(59,130,246,0.08);padding:16px;text-align:center;border-radius:12px;border:1px solid rgba(59,130,246,0.3);'>{code}</div>
+      <p style='margin:16px 0 0;color:#94A3B8;font-size:13px;'>This code expires in 15 minutes. If you didn't request it, ignore this email.</p>"""
+    asyncio.create_task(send_email_async(user["email"], "Your Rivalo verification code", email_shell("Verify your email", body)))
+    logger.info(f"[verify] code for {user['email']}: {code}")  # also logged for sandbox testing
+
+@api.post("/auth/send-verification")
+async def send_verification(user: dict = Depends(get_current_user)):
+    if user.get("email_verified"):
+        return {"ok": True, "already_verified": True}
+    await issue_email_code(user)
+    return {"ok": True}
+
+@api.post("/auth/verify-email")
+async def verify_email(body: EmailVerifyReq, user: dict = Depends(get_current_user)):
+    if user.get("email_verified"):
+        return {"ok": True, "already_verified": True}
+    rec = await db.email_codes.find_one({"user_id": user["id"]})
+    if not rec:
+        raise HTTPException(400, "No code requested. Request a new one.")
+    if rec["attempts"] >= 5:
+        raise HTTPException(429, "Too many attempts. Request a new code.")
+    if datetime.fromisoformat(rec["expires_at"]) < datetime.now(timezone.utc):
+        raise HTTPException(400, "Code expired. Request a new one.")
+    await db.email_codes.update_one({"id": rec["id"]}, {"$inc": {"attempts": 1}})
+    if (body.code or "").strip() != rec["code"]:
+        raise HTTPException(400, "Invalid code")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"email_verified": True}})
+    await db.email_codes.delete_many({"user_id": user["id"]})
+    await push_notification(user["id"], "verified", "Email verified", "Your Rivalo account is now trusted (+10 points).")
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"ok": True, "user": public_user(fresh)}
 
 # ------------------------------------------------------------------ Profile
 @api.patch("/users/me")
@@ -336,7 +455,7 @@ def project_view(p: dict) -> dict:
     return p
 
 @api.post("/projects")
-async def create_project(body: ProjectCreate, user: dict = Depends(get_current_user)):
+async def create_project(body: ProjectCreate, user: dict = Depends(require_verified)):
     project = {
         "id": new_id(),
         "client_id": user["id"],
@@ -399,7 +518,7 @@ async def get_project(project_id: str):
 
 # ------------------------------------------------------------------ Applications
 @api.post("/projects/{project_id}/apply")
-async def apply_to_project(project_id: str, body: ApplyReq, user: dict = Depends(get_current_user)):
+async def apply_to_project(project_id: str, body: ApplyReq, user: dict = Depends(require_verified)):
     project = await db.projects.find_one({"id": project_id})
     if not project:
         raise HTTPException(404, "Project not found")
@@ -752,6 +871,93 @@ async def mark_all_read(user: dict = Depends(get_current_user)):
     await db.notifications.update_many({"user_id": user["id"], "read": False}, {"$set": {"read": True}})
     return {"ok": True}
 
+# ------------------------------------------------------------------ AI Coach & Vetting Task
+RIVALO_COACH_SYS = (
+    "You are 'Rivalo Coach', a concise, supportive advisor on the Rivalo freelance competition platform. "
+    "You give actionable advice to clients and freelancers about briefs, pitches, timelines, fair comparison, "
+    "and craft. You answer in 2–6 short sentences. Use plain text. "
+    "STRICT RULES: Never write the deliverable for them (no logo descriptions used as a final brief, no code for their project, no copywriting they can submit). "
+    "Never disclose competitors' submissions. Never suggest cheating, ghost-writing, or copying. "
+    "If asked to do their work, politely decline and pivot to coaching questions that help them think."
+)
+
+@api.post("/ai/chat")
+async def ai_chat(body: AiChatReq, user: dict = Depends(get_current_user)):
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "AI not configured")
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception:
+        raise HTTPException(503, "AI library unavailable")
+    ctx_hint = {
+        "client": " The user is acting as a CLIENT (project owner).",
+        "freelancer": " The user is acting as a FREELANCER (competitor).",
+    }.get(body.context, "")
+    session_id = body.session_id or f"u-{user['id']}"
+    chat_obj = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=session_id,
+        system_message=RIVALO_COACH_SYS + ctx_hint,
+    ).with_model("openai", "gpt-4o-mini")
+    try:
+        reply = await chat_obj.send_message(UserMessage(text=body.message))
+    except Exception as e:
+        logger.error(f"AI chat failed: {e}")
+        raise HTTPException(502, "Coach is offline — try again in a moment.")
+    await db.ai_chat_log.insert_one({
+        "id": new_id(), "user_id": user["id"], "session_id": session_id,
+        "user_msg": body.message, "reply": reply, "created_at": now_iso(),
+    })
+    return {"reply": reply, "session_id": session_id}
+
+@api.post("/ai/vetting-task")
+async def ai_vetting_task(body: AiTaskReq, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": body.project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["client_id"] != user["id"]:
+        raise HTTPException(403, "Forbidden")
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "AI not configured")
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception:
+        raise HTTPException(503, "AI library unavailable")
+    fids = body.freelancer_ids[:5] if body.freelancer_ids else project.get("approved_freelancer_ids", [])
+    freelancers = await db.users.find({"id": {"$in": fids}}, {"_id": 0}).to_list(10)
+    fdesc = "\n".join([f"- {f.get('name','?')}: skills={', '.join(f.get('skills') or [])}; headline={f.get('headline','')}" for f in freelancers]) or "- (no freelancer profiles available)"
+    sys = (
+        "You design a SHORT freelancer vetting task (a mini-challenge) tailored to: "
+        "(1) the brief, (2) the time window, (3) the overlapping skills of the chosen competitors. "
+        "Constraints: completable in under 25% of the project window, single deliverable, evaluable in <5 min by the client. "
+        "Output JSON ONLY with fields: title (<=80 chars), goal (1 sentence), tasks (3-5 bullets, each <=120 chars), evaluation_criteria (3 bullets), time_estimate_minutes (integer)."
+    )
+    prompt = (
+        f"Brief: {project['title']} — {project['description']}\n"
+        f"Category: {project['category']}\n"
+        f"Total window: {project['duration_hours']} hours\n"
+        f"Competitors:\n{fdesc}\n"
+        f"Respond with JSON only."
+    )
+    chat_obj = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"task-{body.project_id}",
+        system_message=sys,
+    ).with_model("openai", "gpt-4o-mini")
+    try:
+        raw = await chat_obj.send_message(UserMessage(text=prompt))
+    except Exception as e:
+        logger.error(f"AI vetting task failed: {e}")
+        raise HTTPException(502, "AI is offline — try again in a moment.")
+    # Strip markdown fences if any
+    cleaned = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.MULTILINE).strip()
+    import json as _json
+    try:
+        parsed = _json.loads(cleaned)
+    except Exception:
+        parsed = {"title": "Vetting task", "goal": raw[:200], "tasks": [], "evaluation_criteria": [], "time_estimate_minutes": 30}
+    return parsed
+
 # ------------------------------------------------------------------ Stats
 @api.get("/stats")
 async def stats():
@@ -796,6 +1002,11 @@ async def seed_demo():
                 "rating": 0,
                 "completed": 0,
                 "wins": 0,
+                "email_verified": True,
+                "phone": "", "phone_verified": False,
+                "age": None, "location": "",
+                "languages": [], "hourly_rate": None, "available": True,
+                "cv_url": "", "social_links": {}, "former_projects": [],
                 "created_at": now_iso(),
             })
 

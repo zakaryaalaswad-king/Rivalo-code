@@ -3,18 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { formatApiError } from "../lib/api";
 import Logo from "../components/Logo";
+import VerifyEmailModal from "../components/VerifyEmailModal";
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, refresh } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showVerify, setShowVerify] = useState(false);
   const onChange = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr(""); setLoading(true);
-    try { await register(form.email, form.password, form.name); nav("/dashboard"); }
+    try { await register(form.email, form.password, form.name); setShowVerify(true); }
     catch (e2) { setErr(formatApiError(e2)); }
     finally { setLoading(false); }
   };
@@ -41,14 +43,15 @@ export default function Register() {
             <input value={form.password} onChange={onChange("password")} required type="password" minLength={6} className="w-full mt-2 px-4 py-3" data-testid="register-password-input" />
           </div>
           {err && <div className="text-red-400 text-sm" data-testid="register-error">{err}</div>}
-          <button disabled={loading} className="w-full cta-neon py-3 disabled:opacity-50" data-testid="register-submit-btn">
+          <button disabled={loading} className="w-full btn-primary disabled:opacity-50" data-testid="register-submit-btn">
             {loading ? "Creating…" : "Create account"}
           </button>
           <div className="text-sm text-slate-400 text-center">
-            Already in? <Link to="/login" className="text-[#D4AF37] hover:underline">Sign in</Link>
+            Already in? <Link to="/login" className="text-[#3B82F6] hover:underline">Sign in</Link>
           </div>
         </form>
       </div>
+      {showVerify && <VerifyEmailModal onClose={() => { setShowVerify(false); nav("/dashboard"); }} onVerified={() => { refresh(); nav("/dashboard"); }} />}
     </div>
   );
 }
