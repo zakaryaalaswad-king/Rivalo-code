@@ -17,6 +17,8 @@ import Profile from "./pages/Profile";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Pricing from "./pages/Pricing";
+import RefundPolicy from "./pages/RefundPolicy";
+import Contact from "./pages/Contact";
 import Footer from "./components/Footer";
 import { Toaster } from "sonner";
 
@@ -49,6 +51,8 @@ function Shell() {
         <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <Footer />

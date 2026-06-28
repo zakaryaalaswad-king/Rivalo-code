@@ -934,12 +934,27 @@ async def subscribe_checkout(body: SubscriptionInitReq, request: Request, user: 
 
 # ------------------------------------------------------------------ AI Coach & Vetting Task
 RIVALO_COACH_SYS = (
-    "You are 'Rivalo Coach', a concise, supportive advisor on the Rivalo freelance competition platform. "
-    "You give actionable advice to clients and freelancers about briefs, pitches, timelines, fair comparison, "
-    "and craft. You answer in 2–6 short sentences. Use plain text. "
-    "STRICT RULES: Never write the deliverable for them (no logo descriptions used as a final brief, no code for their project, no copywriting they can submit). "
-    "Never disclose competitors' submissions. Never suggest cheating, ghost-writing, or copying. "
-    "If asked to do their work, politely decline and pivot to coaching questions that help them think."
+    "You are RIVALO COACH — an elite AI assistant on the Rivalo competitive freelance arena. "
+    "Identity: a calm, professional mentor, project manager, evaluator, strategist, and assistant — never a chatbot. "
+    "Audience: BOTH clients (project owners) and freelancers (competitors).\n\n"
+    "MISSION (freelancers): help them understand competitions, improve proposals, break work into milestones, manage deadlines, "
+    "estimate completion time, find missing requirements, motivate, raise quality, interpret client feedback. Encourage LEARNING, not dependency.\n"
+    "MISSION (clients): help them write professional briefs, suggest realistic budgets & deadlines, generate evaluation criteria, "
+    "compare freelancers objectively, detect suspicious entries, and select winners with TRANSPARENT reasoning.\n\n"
+    "PERSONALITY: professional, friendly, fast, confident, motivating, respectful, calm, helpful. Use light, purposeful emojis "
+    "(🎯 🚀 ✅ 💡 📌 ⚡ 🏆 👏) — never spam them. Always understand intent first; ask one clarifying question only if essential.\n\n"
+    "RESPONSE STYLE: short and structured. Use headings, bullets, numbered steps, and concrete next actions. "
+    "Concise by default; deeper analysis only when explicitly requested.\n\n"
+    "HARD RULES — never violate:\n"
+    "  • Never write the full competition solution (no full logos, no production code, no finished copy).\n"
+    "  • Never reveal another competitor's submission, identity, or pitch.\n"
+    "  • Never disclose internal scoring formulas, hidden evaluation weights, or platform internals.\n"
+    "  • Never help with: plagiarism, AI-spam submissions, fake portfolios/screenshots/reviews, rating manipulation, "
+    "    bribery, bypassing payments, fraud, illegal activity, identity falsification, off-platform fee circumvention.\n"
+    "  • If asked to do their work or cheat, politely decline and pivot to coaching questions that develop the user's thinking.\n\n"
+    "REASONING: when comparing freelancers or evaluating work, mention multiple dimensions — portfolio quality, communication, "
+    "deadline commitment, past ratings, consistency, technical/design/creative quality, originality, professionalism — and explain WHY. "
+    "Be objective; never moralize unnecessarily. Don't accuse users directly when something looks suspicious — recommend a fairness review."
 )
 
 @api.post("/ai/chat")
@@ -951,8 +966,8 @@ async def ai_chat(body: AiChatReq, user: dict = Depends(get_current_user)):
     except Exception:
         raise HTTPException(503, "AI library unavailable")
     ctx_hint = {
-        "client": " The user is acting as a CLIENT (project owner).",
-        "freelancer": " The user is acting as a FREELANCER (competitor).",
+        "client": " The user is acting as a CLIENT (project owner). Lean toward brief-writing, evaluation criteria, fair comparison.",
+        "freelancer": " The user is acting as a FREELANCER (competitor). Lean toward pitch quality, planning, time estimation, learning.",
     }.get(body.context, "")
     session_id = body.session_id or f"u-{user['id']}"
     chat_obj = LlmChat(
@@ -1016,8 +1031,97 @@ async def ai_vetting_task(body: AiTaskReq, user: dict = Depends(get_current_user
     try:
         parsed = _json.loads(cleaned)
     except Exception:
-        parsed = {"title": "Vetting task", "goal": raw[:200], "tasks": [], "evaluation_criteria": [], "time_estimate_minutes": 30}
+        parsed = {"title": "Vetting task", "goal": raw[:200], "tasks": [], "evaluation_criteria": [],
+                  "time_estimate_minutes": 30, "difficulty": "medium", "fairness_score": 70, "fairness_reasoning": "Heuristic default."}
     return parsed
+
+# ----- Winner recommendation -----
+class WinnerRecReq(BaseModel):
+    project_id: str
+
+@api.post("/ai/winner-recommendation")
+async def ai_winner_recommendation(body: WinnerRecReq, user: dict = Depends(get_current_user)):
+    project = await db.projects.find_one({"id": body.project_id})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if project["client_id"] != user["id"]:
+        raise HTTPException(403, "Only the project owner can request a recommendation")
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "AI not configured")
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception:
+        raise HTTPException(503, "AI library unavailable")
+    subs = await db.submissions.find({"project_id": body.project_id}, {"_id": 0}).to_list(20)
+    if not subs:
+        raise HTTPException(400, "No submissions yet")
+    competitor_ids = [s["user_id"] for s in subs]
+    profiles = await db.users.find({"id": {"$in": competitor_ids}}, {"_id": 0}).to_list(20)
+    pmap = {p["id"]: p for p in profiles}
+    rows = []
+    for s in subs:
+        p = pmap.get(s["user_id"], {})
+        rows.append(
+            f"- {p.get('name','?')} (wins={p.get('wins',0)}, trust=?): "
+            f"submission='{(s.get('description') or '')[:240]}', "
+            f"deliverable_url={s.get('url') or 'n/a'}, files={len(s.get('files') or [])}"
+        )
+    summary = "\n".join(rows)
+    sys = (
+        "You are evaluating freelancer submissions for a competition. Score each on multiple dimensions: "
+        "portfolio_quality, communication, deadline_commitment, past_ratings (use wins as proxy), consistency, "
+        "technical_quality, creativity, originality, professionalism. NEVER expose the formula. "
+        "Return JSON ONLY: { ranked: [ { user_id, rank, headline, why } ], "
+        "winner_user_id, winner_explanation }. "
+        "winner_explanation must be a single paragraph of clear, evidence-led prose without revealing internal scores."
+    )
+    prompt = (
+        f"Brief: {project['title']} — {project['description']}\nCategory: {project['category']}\n"
+        f"Bounty: ${project['budget']}\n\nSubmissions:\n{summary}\n\n"
+        "Build a fair ranking. If two are equivalent, prefer the one with stronger past wins and clearer deliverable.\n"
+        "Return JSON only."
+    )
+    chat_obj = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"rec-{body.project_id}", system_message=sys).with_model("openai", "gpt-4o-mini")
+    try:
+        raw = await chat_obj.send_message(UserMessage(text=prompt))
+    except Exception as e:
+        logger.error(f"AI winner rec failed: {e}")
+        raise HTTPException(502, "AI is offline — try again in a moment.")
+    cleaned = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.MULTILINE).strip()
+    try:
+        parsed = _json.loads(cleaned)
+    except Exception:
+        parsed = {"ranked": [], "winner_user_id": competitor_ids[0] if competitor_ids else None,
+                  "winner_explanation": raw[:500]}
+    # attach names for UI convenience
+    for r in parsed.get("ranked", []):
+        r["name"] = pmap.get(r.get("user_id"), {}).get("name", "Unknown")
+    return parsed
+
+# ----- Contact form -----
+class ContactReq(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: EmailStr
+    subject: str = Field(min_length=2, max_length=200)
+    message: str = Field(min_length=10, max_length=5000)
+    honeypot: Optional[str] = ""
+
+@api.post("/contact")
+async def contact_form(body: ContactReq, request: Request):
+    if (body.honeypot or "").strip():
+        return {"ok": True}  # silently drop bots
+    rec = {
+        "id": new_id(),
+        "name": body.name,
+        "email": str(body.email).lower(),
+        "subject": body.subject,
+        "message": body.message,
+        "ip": request.client.host if request.client else "",
+        "created_at": now_iso(),
+        "status": "open",
+    }
+    await db.contact_messages.insert_one(rec)
+    return {"ok": True, "ticket_id": rec["id"]}
 
 # ------------------------------------------------------------------ Stats
 @api.get("/stats")

@@ -1,0 +1,67 @@
+{
+  "summary": "Iter6 testing: backend 10/11 pass (one real bug found in /api/ai/vetting-task — system prompt does not request fairness_score/difficulty/fairness_reasoning, so the LLM omits them and the response only matches the fallback shape). Frontend public pages (Pricing, Refund, Contact, Privacy, Terms, Footer) render correctly and contact form submits end-to-end. Authed regression (login, profile, AI Coach widget, notification bell, browse filters with 6/6 categories) all green.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/ai/vetting-task",
+        "issue": "System prompt does NOT instruct the LLM to return fairness_score, difficulty, or fairness_reasoning — those fields only appear in the JSON-parse fallback. The actual LLM response (gpt-4o-mini) returns only {title, goal, tasks, evaluation_criteria, time_estimate_minutes}, so the contract advertised in the iteration prompt is violated on the happy path.",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rivalo_iter6.py",
+    "/app/test_reports/pytest/iter6_results.xml"
+  ],
+  "passed_tests": {
+    "backend": [
+      "POST /api/contact valid payload → 200 {ok:true, ticket_id}; doc persisted in db.contact_messages with lowercase email and status=open.",
+      "POST /api/contact with honeypot field set → 200 {ok:true} but NO ticket_id and NO db.contact_messages row inserted (silent drop confirmed).",
+      "POST /api/contact with message length 2 (<10) → 422 (Pydantic min_length validation).",
+      "POST /api/ai/winner-recommendation as owner with 1 submission → 200 {ranked:list, winner_user_id, winner_explanation}, explanation is non-empty prose; ranked rows enriched with name.",
+      "POST /api/ai/winner-recommendation as non-owner (freelancer@demo.com) → 403.",
+      "POST /api/ai/winner-recommendation for owner project with 0 submissions → 400 'No submissions yet'.",
+      "POST /api/subscriptions/checkout for freshly-registered unverified user → 403 (require_verified gate works).",
+      "POST /api/payments/checkout with new ProjectCreate schema {title, description, category, budget, duration_hours, max_competitors, deliverables} → 200 with Stripe URL.",
+      "GET /api/auth/me for freshly registered user → plan='free' and plan_expires_at key present.",
+      "POST /api/ai/chat with upgraded RIVALO_COACH_SYS prompt → 200 non-empty reply + session_id."
+    ],
+    "frontend": [
+      "/pricing renders all 3 cards data-testid plan-basic/plan-pro/plan-business; Pro card contains 'Most popular' badge (CSS uppercase styling renders it as MOST POPULAR).",
+      "/refund-policy renders <h1>Refund Policy</h1>.",
+      "/contact renders the form (data-testid=contact-form). Filling name/email/subject/message and submitting shows data-testid=contact-success (real backend ticket created).",
+      "/privacy contains CCPA, GDPR, COPPA sections.",
+      "/terms contains arbitration and class-action waiver sections.",
+      "Footer (visible on every page) shows footer-privacy, footer-terms, footer-refund, footer-contact links.",
+      "Login flow with client@demo.com/demo1234 redirects to /dashboard.",
+      "/profile renders trust-ring + profile-save-btn.",
+      "AI Coach floating widget: data-testid=ai-chat-toggle present and opens data-testid=ai-chat-panel.",
+      "Notification bell button present in header.",
+      "/browse renders all 6 expected categories (Graphic Design, Web Development, Writing, Video, Music, Marketing) and 20+ interactive buttons."
+    ]
+  },
+  "critical_code_review_comments": [
+    "BACKEND: /api/ai/vetting-task system prompt (server.py L1005-1009) advertises only 5 output fields. The fallback path (L1034-1035) DOES include fairness_score/difficulty/fairness_reasoning, but the happy path (successful JSON parse) does NOT — because the LLM is never told to produce them. Either (a) extend the system prompt to require fairness_score (0-100), difficulty (easy|medium|hard), fairness_reasoning, OR (b) post-process the parsed dict to inject defaults when the fields are missing. The iteration prompt explicitly calls these out as required fields.",
+    "BACKEND: winner-recommendation prompt summary line embeds 'wins=…, trust=?' (literal question mark, L1065). Use actual trust_points instead of '?'.",
+    "BACKEND: /api/contact stores request.client.host directly without IP-anonymisation despite the new GDPR-aware Privacy copy advertising IP-truncation. Consider hashing or truncating the last octet before persist if you really want to honour Privacy section claims.",
+    "BACKEND: ContactReq has no rate-limit. Bot honeypot is good but trivially bypassed by anyone who removes the field client-side; a per-IP per-minute throttle is recommended.",
+    "FRONTEND: Pricing card 'Most popular' badge uses CSS 'uppercase' so screen-reader output is 'Most popular' (lowercase) — fine for a11y but if test scripts look for the literal string 'MOST POPULAR', they need a case-insensitive match.",
+    "FRONTEND: contact-subject is a <select> with options; the test had to pick by index=1. Adding individual data-testid on each <option> would help future regression tests."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_rivalo_iter6.py (created)"
+  ],
+  "success_rate": {"backend": "91% (10/11)", "frontend": "100%"},
+  "test_credentials": "client@demo.com / demo1234 (email_verified=true), freelancer@demo.com / demo1234 (email_verified=true). Unverified users are created on-the-fly via /api/auth/register with @example.com.",
+  "seed_data_creation": "Test created and cleaned up: TEST_iter6_winner_proj (project + 1 db-injected submission), TEST_iter6_zerosubs project, TEST_iter6_paychk project, ephemeral unverified test_iter6_unv_* user, ephemeral test_iter6_meplan_* user. All cleaned up in fixtures' teardown. db.contact_messages got 1 transient doc from frontend contact submission (TEST_iter6_Contact / iter6-frontend@example.com) — left in place for traceability; safe to drop via {name: /^TEST_iter6/} or {email:/iter6/}.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run with: REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2) python -m pytest backend/tests/test_rivalo_iter6.py -v. Note pytest.ini forces -n 2 --dist loadscope (do NOT pass -p no:xdist). The single failing test is TestVettingTaskFairness::test_vetting_task_returns_fairness_fields — failure is a real backend prompt bug, NOT a flaky LLM. If E1 fixes the system prompt to request the 3 fairness fields, rerun just that test. AI endpoints take ~10-15s each; suite total ~12s.",
+  "rca_of_the_issue": "BUG: /api/ai/vetting-task — server.py lines 1005-1009 define the system prompt which lists only {title, goal, tasks, evaluation_criteria, time_estimate_minutes} as the required JSON output. The LLM faithfully returns exactly those fields. The fallback path at L1034-1035 injects fairness_score=70, difficulty='medium', fairness_reasoning='Heuristic default.' but only fires if JSON parsing fails — which it never does because the LLM produces valid JSON. FIX: append to the sys string: ', plus fairness_score (integer 0-100 estimating task fairness across diverse candidates), difficulty (one of: easy, medium, hard), fairness_reasoning (1-2 sentence rationale)' AND/OR after parse: 'parsed.setdefault(\"fairness_score\", 70); parsed.setdefault(\"difficulty\",\"medium\"); parsed.setdefault(\"fairness_reasoning\",\"Heuristic default.\")'."
+}

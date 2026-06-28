@@ -6,16 +6,39 @@ import { Check, Crown, Sparkles, Briefcase, Zap } from "lucide-react";
 
 const PLAN_META = {
   basic: {
-    badge: "🟢", color: "#22C55E", icon: Sparkles, tagline: "Casual freelancers",
-    perks: ["Limited project applications (up to 10 / month)", "Professional profile", "Standard support"],
+    badge: "🟢", color: "#22C55E", icon: Sparkles, tagline: "Casual freelancers · build momentum",
+    perks: [
+      "Apply to up to 10 competitions / month",
+      "Polished professional profile page",
+      "Trust ladder visible to clients",
+      "Standard support (1 business day)",
+      "Rivalo Coach (basic)",
+    ],
   },
   pro: {
-    badge: "🔵", color: "#3B82F6", icon: Zap, tagline: "Professional freelancers", star: true,
-    perks: ["Unlimited project applications", "Higher search ranking", "Verified badge", "Profile analytics", "Priority support"],
+    badge: "🔵", color: "#3B82F6", icon: Zap, tagline: "Professional freelancers · win more", star: true,
+    perks: [
+      "Unlimited project applications",
+      "Higher search ranking — appear above Basic & Free",
+      "Verified pro badge on your profile + cards",
+      "Profile analytics (views, win rate, click-throughs)",
+      "Rivalo Coach Pro (deeper reasoning + 24/7 chat)",
+      "Priority support (4-hour response)",
+      "Early access to new categories",
+    ],
   },
   business: {
-    badge: "🟣", color: "#A855F7", icon: Briefcase, tagline: "Companies & Teams",
-    perks: ["Everything in Pro", "Team management", "Unlimited job postings", "Premium support", "Business tools"],
+    badge: "🟣", color: "#A855F7", icon: Briefcase, tagline: "Companies & teams · scale your hiring",
+    perks: [
+      "Everything in Pro",
+      "Team management (seats, roles, audit log)",
+      "Unlimited job postings",
+      "Bulk briefs + multi-project workflows",
+      "AI winner recommendation with full reasoning",
+      "Custom evaluation criteria templates",
+      "Premium support (SLA · dedicated success manager)",
+      "Business tools (invoices, tax exports, white-label option)",
+    ],
   },
 };
 
