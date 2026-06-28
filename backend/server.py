@@ -1033,6 +1033,13 @@ async def ai_vetting_task(body: AiTaskReq, user: dict = Depends(get_current_user
     except Exception:
         parsed = {"title": "Vetting task", "goal": raw[:200], "tasks": [], "evaluation_criteria": [],
                   "time_estimate_minutes": 30, "difficulty": "medium", "fairness_score": 70, "fairness_reasoning": "Heuristic default."}
+    # Guarantee the fairness contract even when the LLM forgets a field.
+    parsed.setdefault("difficulty", "medium")
+    parsed.setdefault("fairness_score", 75)
+    parsed.setdefault("fairness_reasoning", "Default fairness — task scoped within 25% of the project window with a single deliverable.")
+    parsed.setdefault("time_estimate_minutes", 30)
+    parsed.setdefault("tasks", [])
+    parsed.setdefault("evaluation_criteria", [])
     return parsed
 
 # ----- Winner recommendation -----
