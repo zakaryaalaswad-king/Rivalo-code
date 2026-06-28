@@ -978,7 +978,10 @@ async def ai_chat(body: AiChatReq, user: dict = Depends(get_current_user)):
     try:
         reply = await chat_obj.send_message(UserMessage(text=body.message))
     except Exception as e:
+        msg = str(e).lower()
         logger.error(f"AI chat failed: {e}")
+        if "budget" in msg or "quota" in msg or "limit" in msg:
+            raise HTTPException(503, "Rivalo Coach is taking a short break — our AI budget needs a top-up. Try again later or contact support.")
         raise HTTPException(502, "Coach is offline — try again in a moment.")
     await db.ai_chat_log.insert_one({
         "id": new_id(), "user_id": user["id"], "session_id": session_id,
