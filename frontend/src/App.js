@@ -1,6 +1,8 @@
 import "./App.css";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
+import { installRipple } from "./lib/ripple";
 import Header from "./components/Header";
 import AiChat from "./components/AiChat";
 import ScrollToTop from "./components/ScrollToTop";
@@ -63,6 +65,7 @@ function Shell() {
 }
 
 function App() {
+  useEffect(() => { installRipple(); }, []);
   return (
     <AuthProvider>
       <BrowserRouter>

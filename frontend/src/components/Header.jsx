@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import Logo from "./Logo";
+import TrustRing from "./TrustRing";
 import { LogOut, LayoutDashboard, PlusCircle, Compass, ChevronDown, User } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
@@ -59,17 +60,22 @@ export default function Header() {
                   <ChevronDown size={14} className="text-slate-400" />
                 </button>
                 {open && (
-                  <div className="absolute right-0 mt-2 w-64 card shadow-2xl overflow-hidden" data-testid="avatar-menu-dropdown">
-                    <div className="px-4 py-3 border-b border-white/5 flex items-center gap-3">
-                      <Avatar user={user} size={42} />
-                      <div className="min-w-0">
+                  <div className="absolute right-0 mt-2 w-72 card shadow-2xl overflow-hidden" data-testid="avatar-menu-dropdown">
+                    <div className="px-4 py-4 border-b border-white/5 flex items-start gap-3">
+                      <Avatar user={user} size={48} />
+                      <div className="min-w-0 flex-1">
                         <div className="font-semibold truncate">{user.name}</div>
                         <div className="text-xs text-muted truncate">{user.email}</div>
-                        <div className="mt-1 inline-flex items-center gap-1 text-[10px]">
-                          <span className="chip" data-testid="header-trust-chip">Trust {user.trust_points || 0}/100</span>
-                          {!user.email_verified && <span className="chip chip-amber">Unverified</span>}
-                        </div>
+                        {!user.email_verified && <span className="chip chip-amber mt-1.5 inline-block">Unverified</span>}
                       </div>
+                      <button
+                        onClick={() => { setOpen(false); nav("/profile"); }}
+                        title="Open profile management"
+                        className="!p-0 !bg-transparent hover:scale-105 transition-transform"
+                        data-testid="header-trust-ring-btn"
+                      >
+                        <TrustRing points={user.trust_points || 0} size={52} stroke={6} />
+                      </button>
                     </div>
                     <button onClick={() => { setOpen(false); nav("/profile"); }} className="w-full text-left px-4 py-2.5 text-sm hover:bg-white/5 flex items-center gap-2" data-testid="menu-profile-management">
                       <User size={14} /> Profile management
