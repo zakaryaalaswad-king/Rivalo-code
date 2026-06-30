@@ -214,7 +214,7 @@ export default function Profile() {
             <div className="space-y-4">
               {form.former_projects.length === 0 && <div className="text-muted text-sm">Add past work the client can verify. Title + link or image is enough.</div>}
               {form.former_projects.map((p, i) => (
-                <div key={i} className="border border-white/10 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid={`former-project-${i}`}>
+                <div key={p.__id || p.url || `fp-${i}`} className="border border-white/10 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid={`former-project-${i}`}>
                   <Field label="Title"><input value={p.title} onChange={(e) => setProj(i, "title", e.target.value)} className="w-full px-3 py-2"/></Field>
                   <Field label="Public URL"><input value={p.url} onChange={(e) => setProj(i, "url", e.target.value)} placeholder="https://…" className="w-full px-3 py-2"/></Field>
                   <Field label="Image URL (optional)"><input value={p.image} onChange={(e) => setProj(i, "image", e.target.value)} placeholder="https://…" className="w-full px-3 py-2"/></Field>

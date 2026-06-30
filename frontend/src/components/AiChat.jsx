@@ -3,6 +3,15 @@ import api, { formatApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Sparkles, Send, X, MessageCircle } from "lucide-react";
 
+const SUGGESTIONS = [
+  "How should I price this brief?",
+  "Compare these two pitches for me",
+  "What angle wins this category?",
+];
+
+let MSG_SEQ = 0;
+const newId = () => `m-${Date.now()}-${++MSG_SEQ}`;
+
 export default function AiChat() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -12,52 +21,134 @@ export default function AiChat() {
   const sessionId = useRef(`s-${Date.now()}`);
   const scroller = useRef(null);
 
-  useEffect(() => { scroller.current?.scrollTo({ top: 9e6, behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: 9e6, behavior: "smooth" });
+  }, [messages, busy]);
 
   if (!user || user === false) return null;
 
-  const send = async () => {
-    const msg = text.trim();
+  const send = async (override) => {
+    const msg = (override ?? text).trim();
     if (!msg || busy) return;
-    setMessages((m) => [...m, { role: "user", content: msg }]);
-    setText(""); setBusy(true);
+    setMessages((m) => [...m, { id: newId(), role: "user", content: msg }]);
+    setText("");
+    setBusy(true);
     try {
-      const { data } = await api.post("/ai/chat", { message: msg, session_id: sessionId.current });
-      setMessages((m) => [...m, { role: "ai", content: data.reply }]);
+      const { data } = await api.post("/ai/chat", {
+        message: msg,
+        session_id: sessionId.current,
+      });
+      setMessages((m) => [...m, { id: newId(), role: "ai", content: data.reply }]);
     } catch (e) {
-      setMessages((m) => [...m, { role: "ai", content: `⚠️ ${formatApiError(e)}` }]);
-    } finally { setBusy(false); }
+      setMessages((m) => [
+        ...m,
+        { id: newId(), role: "ai", content: `⚠️ ${formatApiError(e)}` },
+      ]);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <>
       {!open && (
-        <button onClick={() => setOpen(true)} className="fixed bottom-24 right-6 z-40 btn-primary inline-flex items-center gap-2 shadow-2xl" data-testid="ai-chat-toggle">
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-24 right-6 z-40 btn-primary inline-flex items-center gap-2 shadow-2xl"
+          data-testid="ai-chat-toggle"
+        >
           <MessageCircle size={18} /> Rivalo Coach
         </button>
       )}
       {open && (
-        <div className="fixed bottom-24 right-6 z-40 w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-7rem)] card flex flex-col overflow-hidden shadow-2xl reveal" data-testid="ai-chat-panel">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-            <div className="flex items-center gap-2"><Sparkles size={16} className="text-[#22C55E]" /><div className="font-semibold">Rivalo Coach</div></div>
-            <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-white p-1" data-testid="ai-chat-close"><X size={16} /></button>
+        <div
+          className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] card flex flex-col overflow-hidden shadow-2xl reveal"
+          data-testid="ai-chat-panel"
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-gradient-to-r from-[#3B82F6]/12 via-transparent to-[#22C55E]/10">
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#22C55E] flex items-center justify-center">
+                  <Sparkles size={14} className="text-white" />
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#0F172A]" />
+              </div>
+              <div>
+                <div className="font-semibold text-sm">Rivalo Coach</div>
+                <div className="text-[10px] tracking-widest uppercase text-muted">Online</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="text-muted hover:text-white p-1 rounded-full !bg-transparent"
+              data-testid="ai-chat-close"
+            >
+              <X size={16} />
+            </button>
           </div>
+
           <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {messages.length === 0 && (
-              <div className="text-sm text-muted">
-                Ask me about <strong className="text-slate-300">pitching, pricing, briefs, comparing competitors, or staying competitive</strong>. I won't write your deliverables for you — but I'll help you think.
+              <div className="space-y-3">
+                <div className="text-sm text-muted leading-relaxed">
+                  Ask me about <strong className="text-slate-300">pitching, pricing, briefs, comparing competitors, or staying competitive</strong>. I won't write your deliverables — but I'll help you think.
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => send(s)}
+                      className="text-xs px-3 py-1.5 rounded-full border border-white/10 hover:border-[#3B82F6]/50 hover:bg-[#3B82F6]/10 text-slate-300 transition-all"
+                      data-testid={`ai-suggest-${s.slice(0, 12).replace(/\s+/g, "-")}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`ai-chat-bubble ${m.role === "user" ? "user" : ""} text-sm max-w-[85%] whitespace-pre-wrap`}>{m.content}</div>
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`ai-chat-bubble ${
+                    m.role === "user" ? "user" : ""
+                  } text-sm max-w-[85%] whitespace-pre-wrap leading-relaxed`}
+                >
+                  {m.content}
+                </div>
               </div>
             ))}
-            {busy && <div className="ai-chat-bubble text-sm text-muted inline-block">…thinking</div>}
+            {busy && (
+              <div className="flex justify-start">
+                <div className="ai-chat-bubble text-sm inline-flex items-center gap-1.5">
+                  <span className="typing-dot" />
+                  <span className="typing-dot" style={{ animationDelay: "120ms" }} />
+                  <span className="typing-dot" style={{ animationDelay: "240ms" }} />
+                </div>
+              </div>
+            )}
           </div>
-          <div className="border-t border-white/5 p-3 flex gap-2">
-            <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Ask for advice…" className="flex-1 px-3 py-2 text-sm" data-testid="ai-chat-input" />
-            <button onClick={send} disabled={busy || !text.trim()} className="btn-primary !px-3 !py-2" data-testid="ai-chat-send"><Send size={14} /></button>
+
+          <div className="border-t border-white/10 p-3 flex gap-2">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Ask for advice…"
+              className="flex-1 px-3 py-2 text-sm"
+              data-testid="ai-chat-input"
+            />
+            <button
+              onClick={() => send()}
+              disabled={busy || !text.trim()}
+              className="btn-primary !px-3 !py-2 disabled:opacity-50"
+              data-testid="ai-chat-send"
+            >
+              <Send size={14} />
+            </button>
           </div>
         </div>
       )}
