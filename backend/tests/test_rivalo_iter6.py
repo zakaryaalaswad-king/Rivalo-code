@@ -1,4 +1,4 @@
-"""Iteration 6 — Rivalo Coach upgrade, /ai/winner-recommendation, /ai/vetting-task fairness, /contact form,
+"""Iteration 6 — Rivaloz Coach upgrade, /ai/winner-recommendation, /ai/vetting-task fairness, /contact form,
 plus regression on subscription checkout gating, project payment checkout, /auth/me plan fields, /ai/chat."""
 import os
 import uuid
@@ -266,7 +266,7 @@ class TestRegressionMePlan:
             db.users.delete_one({"email": email})
 
 
-# ---------- Regression: /ai/chat with new RIVALO_COACH_SYS prompt ----------
+# ---------- Regression: /ai/chat with new RIVALOZ_COACH_SYS prompt ----------
 class TestRegressionAiChat:
     def test_chat_returns_non_empty_reply(self, client_session):
         r = client_session.post(f"{API}/ai/chat",

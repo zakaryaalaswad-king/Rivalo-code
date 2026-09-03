@@ -1,0 +1,59 @@
+{
+  "summary": "Full regression of Rivalo→Rivaloz rename + Night Arena theme swap. Backend: 7/8 pytest passing (openapi.json not exposed via ingress — non-blocking, code inspection confirms FastAPI(title='Rivaloz API')). Frontend: all critical pages (Landing, Browse, Pricing, How-it-works, Login, Dashboard, Profile, Project Detail open+completed, AI Chat widget) render correctly on the new Night Arena canvas/ink theme. Zero legacy 'Rivalo' (unbranded) leaks found across / /browse /pricing /how-it-works /contact. Winner reveal shows volt glow + Trophy icon on completed project. Scoreboard bar renders on Dashboard (Trust/Wins/Open/Live/Competitions) and Project Detail (Stage/Bounty/Seats/Window). Login with client@demo.com/demo1234 lands on Dashboard. Rivaloz Coach chat widget opens from floating CTA. Pricing shows 3 plans with 'MOST POPULAR' on Pro and volt CTA on Business.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /openapi.json", "issue": "Not reachable via ingress (only /api/* is proxied). Non-blocking — FastAPI title='Rivaloz API' verified by code inspection at server.py:98."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rivaloz_iter8.py",
+    "/app/test_reports/pytest/iter8_results.xml"
+  ],
+  "passed_tests": {
+    "backend": [
+      "GET /api/stats 200",
+      "GET /api/categories 200",
+      "GET /api/subscriptions/plans 200 (returns plan list)",
+      "POST /api/auth/login 200 (client@demo.com)",
+      "GET /api/auth/me 200 with bearer token",
+      "POST /api/ai/chat 200 (LLM budget currently OK)",
+      "GET /api/projects 200"
+    ],
+    "frontend": [
+      "Landing renders with title 'Rivaloz · The competitive freelance arena', has hero + brand",
+      "Header nav: Browse / How it works / Pricing / Log in / Join Rivaloz all present",
+      "Browse page renders on canvas with pill status tabs, category chips, min-bounty slider, project cards, search + sort controls",
+      "Project detail (open): scoreboard bar shows Stage/Bounty/Seats/Window on ink; header card on canvas",
+      "Project detail (completed): BattleView diagonal split with volt winner glow + Trophy icon; WinnerPanel with 'Match result / BOUNTY RELEASED'",
+      "Login flow: form submit → lands on /dashboard",
+      "Dashboard: persistent scoreboard bar (Trust/Wins/Open briefs/Live now/Competitions), As Client/As Freelancer tabs with count badges, project cards on canvas",
+      "Profile: Trust Ring visible (shows '50 TRUST'), cards render on canvas, form fields intact — the stray `}` fix confirmed, page renders cleanly",
+      "Pricing: 3 plan cards (Basic/Pro/Business) rendered, Pro featured with 'MOST POPULAR' badge, Business uses volt CTA",
+      "AI Chat widget (Rivaloz Coach) floating button opens panel from Dashboard",
+      "Notification bell renders in header when logged in and dropdown opens",
+      "Legacy 'Rivalo' brand leaks: 0 hits across /, /browse, /pricing, /how-it-works, /contact"
+    ]
+  },
+  "critical_code_review_comments": [
+    "Rename hygiene is clean: APP_NAME/APP_SLUG='rivaloz' in server.py, FastAPI title 'Rivaloz API', frontend title/og tags and footer legalName all read 'Rivaloz'. No orphan 'Rivalo' text in visible UI.",
+    "Night Arena theme: canvas cards + ink shell contrast is strong, volt accent used correctly for winner-only, cobalt for CTAs, ember for open-brief counter — spec adherence confirmed via screenshots.",
+    "Console emits 401 for /api/auth/me on anonymous pages — expected behaviour (fetches user; falls back to logged-out). Not an error, but consider treating 401 as silent to keep the console clean.",
+    "openapi.json is not exposed through the ingress — fine for prod but blocks external contract tests. Consider adding a /api/openapi.json alias if needed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_rivaloz_iter8.py (created)"
+  ],
+  "success_rate": {"backend": "7/7 executable (100%; 1 skipped due to ingress config)", "frontend": "100% of tested flows"},
+  "test_credentials": "client@demo.com / demo1234 (verified). freelancer@demo.com / demo1234 (verified).",
+  "seed_data_creation": "None — used existing seed projects (2 completed, 1 open).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run backend: REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2) python -m pytest /app/backend/tests/test_rivaloz_iter8.py -v. The openapi.json test will fail on this ingress; it's expected. All frontend flows verified via preview URL; screenshots stored at /app/test_reports/iter8_*.png. Winner reveal + scoreboard + battle-split classes render correctly on completed project detail. No follow-up work required for the rename or theme swap.",
+  "rca_of_the_issue": "N/A — rename + theme swap regression; no bugs found."
+}

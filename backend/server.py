@@ -29,18 +29,22 @@ from emergentintegrations.payments.stripe.checkout import (
 
 # ------------------------------------------------------------------ Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("rivalo")
+logger = logging.getLogger("rivaloz")
 
 # ------------------------------------------------------------------ Config
 JWT_SECRET = os.environ["JWT_SECRET"]
 JWT_ALGO = "HS256"
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
-APP_NAME = os.environ.get("APP_NAME", "Rivalo")
+APP_NAME = os.environ.get("APP_NAME", "Rivaloz")
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "sk_test_emergent")
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
-APP_SLUG = "rivalo"
+# Storage prefix for uploads. Legacy files uploaded before the Rivalo→Rivaloz rename
+# continue to live under the old "rivalo/uploads/..." keys — they are still served
+# because /api/files/{path:path} forwards the full stored URL without depending on
+# APP_SLUG. New uploads land under "rivaloz/uploads/...".
+APP_SLUG = "rivaloz"
 _storage_key: Optional[str] = None
 
 def init_storage() -> Optional[str]:
@@ -91,7 +95,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
 # ------------------------------------------------------------------ App
-app = FastAPI(title="Rivalo API")
+app = FastAPI(title="Rivaloz API")
 api = APIRouter(prefix="/api")
 
 # ------------------------------------------------------------------ Utility
@@ -205,8 +209,8 @@ async def send_email_async(to: str, subject: str, html: str):
     except Exception as e:
         logger.error(f"Email send failed to {to}: {e}")
 
-# Inline Rivalo logo (SVG) — works in all email clients
-RIVALO_LOGO_SVG = (
+# Inline Rivaloz logo (SVG) — works in all email clients
+RIVALOZ_LOGO_SVG = (
     "<svg width='40' height='40' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'>"
     "<rect x='2' y='2' width='44' height='44' fill='none' stroke='#D4AF37' stroke-width='1.5'/>"
     "<path d='M6 6 L24 24 L6 42 Z' fill='#D4AF37'/>"
@@ -215,14 +219,14 @@ RIVALO_LOGO_SVG = (
 )
 
 def email_shell(title: str, body_html: str) -> str:
-    """Wrap content in branded Rivalo email template."""
+    """Wrap content in branded Rivaloz email template."""
     return f"""
     <div style='font-family:Arial,Helvetica,sans-serif;background:#050614;padding:32px 16px;'>
       <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='max-width:600px;margin:0 auto;background:#0A0C22;border:1px solid rgba(212,175,55,0.3);'>
         <tr><td style='padding:24px 32px;border-bottom:1px solid rgba(255,255,255,0.06);'>
           <table role='presentation' cellpadding='0' cellspacing='0'>
             <tr>
-              <td style='vertical-align:middle;padding-right:12px;'>{RIVALO_LOGO_SVG}</td>
+              <td style='vertical-align:middle;padding-right:12px;'>{RIVALOZ_LOGO_SVG}</td>
               <td style='vertical-align:middle;font-family:Georgia,serif;font-size:24px;color:#F8FAFC;letter-spacing:-0.5px;'>Rival<span style='color:#D4AF37;font-style:italic;'>o</span></td>
             </tr>
           </table>
@@ -232,7 +236,7 @@ def email_shell(title: str, body_html: str) -> str:
           {body_html}
         </td></tr>
         <tr><td style='padding:20px 32px;border-top:1px solid rgba(255,255,255,0.06);color:#64748B;font-size:12px;'>
-          Rivalo · the competitive freelance arena · You're receiving this because of activity on your account.
+          Rivaloz · the competitive freelance arena · You're receiving this because of activity on your account.
         </td></tr>
       </table>
     </div>"""
@@ -410,10 +414,10 @@ async def issue_email_code(user: dict):
     })
     body = f"""
       <p style='margin:0 0 12px;'>Hi {user.get('name','')},</p>
-      <p style='margin:0 0 16px;'>Your Rivalo verification code:</p>
+      <p style='margin:0 0 16px;'>Your Rivaloz verification code:</p>
       <div style='font-family:monospace;font-size:32px;letter-spacing:8px;color:#3B82F6;background:rgba(59,130,246,0.08);padding:16px;text-align:center;border-radius:12px;border:1px solid rgba(59,130,246,0.3);'>{code}</div>
       <p style='margin:16px 0 0;color:#94A3B8;font-size:13px;'>This code expires in 15 minutes. If you didn't request it, ignore this email.</p>"""
-    asyncio.create_task(send_email_async(user["email"], "Your Rivalo verification code", email_shell("Verify your email", body)))
+    asyncio.create_task(send_email_async(user["email"], "Your Rivaloz verification code", email_shell("Verify your email", body)))
     logger.info(f"[verify] code for {user['email']}: {code}")  # also logged for sandbox testing
 
 @api.post("/auth/send-verification")
@@ -439,7 +443,7 @@ async def verify_email(body: EmailVerifyReq, user: dict = Depends(get_current_us
         raise HTTPException(400, "Invalid code")
     await db.users.update_one({"id": user["id"]}, {"$set": {"email_verified": True}})
     await db.email_codes.delete_many({"user_id": user["id"]})
-    await push_notification(user["id"], "verified", "Email verified", "Your Rivalo account is now trusted (+10 points).")
+    await push_notification(user["id"], "verified", "Email verified", "Your Rivaloz account is now trusted (+10 points).")
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
     return {"ok": True, "user": public_user(fresh)}
 
@@ -623,7 +627,7 @@ async def approve_applications(project_id: str, body: ApproveReq, user: dict = D
     for a in rejected_apps:
         u = await db.users.find_one({"id": a["user_id"]}, {"_id": 0})
         if u:
-            body = f"<p>Hi {u.get('name','')},</p><p>Thanks for applying to <strong>{project['title']}</strong>. The client chose other competitors this round. New briefs post daily on Rivalo.</p>"
+            body = f"<p>Hi {u.get('name','')},</p><p>Thanks for applying to <strong>{project['title']}</strong>. The client chose other competitors this round. New briefs post daily on Rivaloz.</p>"
             asyncio.create_task(send_email_async(u["email"], f"Update on {project['title']}", email_shell("Not this round", body)))
             await push_notification(u["id"], "rejected", "Not selected", f"You weren't picked for {project['title']}.", f"/projects/{project_id}")
     refreshed = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -933,8 +937,8 @@ async def subscribe_checkout(body: SubscriptionInitReq, request: Request, user: 
     return {"url": session.url, "session_id": session.session_id, "amount": plan["price"], "currency": plan["currency"]}
 
 # ------------------------------------------------------------------ AI Coach & Vetting Task
-RIVALO_COACH_SYS = (
-    "You are RIVALO COACH — an elite AI assistant on the Rivalo competitive freelance arena. "
+RIVALOZ_COACH_SYS = (
+    "You are RIVALOZ COACH — an elite AI assistant on the Rivaloz competitive freelance arena. "
     "Identity: a calm, professional mentor, project manager, evaluator, strategist, and assistant — never a chatbot. "
     "Audience: BOTH clients (project owners) and freelancers (competitors).\n\n"
     "MISSION (freelancers): help them understand competitions, improve proposals, break work into milestones, manage deadlines, "
@@ -973,7 +977,7 @@ async def ai_chat(body: AiChatReq, user: dict = Depends(get_current_user)):
     chat_obj = LlmChat(
         api_key=EMERGENT_LLM_KEY,
         session_id=session_id,
-        system_message=RIVALO_COACH_SYS + ctx_hint,
+        system_message=RIVALOZ_COACH_SYS + ctx_hint,
     ).with_model("openai", "gpt-4o-mini")
     try:
         reply = await chat_obj.send_message(UserMessage(text=body.message))
@@ -981,7 +985,7 @@ async def ai_chat(body: AiChatReq, user: dict = Depends(get_current_user)):
         msg = str(e).lower()
         logger.error(f"AI chat failed: {e}")
         if "budget" in msg or "quota" in msg or "limit" in msg:
-            raise HTTPException(503, "Rivalo Coach is taking a short break — our AI budget needs a top-up. Try again later or contact support.")
+            raise HTTPException(503, "Rivaloz Coach is taking a short break — our AI budget needs a top-up. Try again later or contact support.")
         raise HTTPException(502, "Coach is offline — try again in a moment.")
     await db.ai_chat_log.insert_one({
         "id": new_id(), "user_id": user["id"], "session_id": session_id,
@@ -1099,6 +1103,7 @@ async def ai_winner_recommendation(body: WinnerRecReq, user: dict = Depends(get_
         raise HTTPException(502, "AI is offline — try again in a moment.")
     cleaned = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.MULTILINE).strip()
     try:
+        import json as _json
         parsed = _json.loads(cleaned)
     except Exception:
         parsed = {"ranked": [], "winner_user_id": competitor_ids[0] if competitor_ids else None,
@@ -1189,7 +1194,7 @@ async def seed_demo():
 async def on_startup():
     await seed_demo()
     init_storage()
-    logger.info("Rivalo backend started")
+    logger.info("Rivaloz backend started")
 
 @app.on_event("shutdown")
 async def on_shutdown():

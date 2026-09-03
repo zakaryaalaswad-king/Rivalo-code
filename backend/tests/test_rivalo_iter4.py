@@ -1,5 +1,5 @@
 """
-Rivalo iteration 4 backend tests:
+Rivaloz iteration 4 backend tests:
 - Auth + email verification flow (gating)
 - Profile update with new fields + trust points recomputation
 - AI Coach chat + AI vetting task
@@ -203,7 +203,7 @@ class TestProfileAndTrust:
             "location": "Remote",
             "languages": ["English", "French"],
             "hourly_rate": 75.0,
-            "cv_url": "/api/files/rivalo/uploads/cv.pdf",
+            "cv_url": "/api/files/rivaloz/uploads/cv.pdf",
             "social_links": {
                 "linkedin": "https://linkedin.com/in/x",
                 "twitter": "https://twitter.com/x",

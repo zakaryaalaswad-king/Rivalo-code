@@ -24,7 +24,7 @@ export default function ApplyCard({ projectId, onApplied }) {
 
   return (
     <form onSubmit={submit} className="card p-6" data-testid="apply-form">
-      <div className="text-[#3B82F6] uppercase tracking-widest text-xs">Apply to compete</div>
+      <div className="text-xs tracking-widest uppercase text-[var(--cobalt)] font-mono">Apply to compete</div>
       <textarea
         value={pitch}
         onChange={(e) => setPitch(e.target.value)}
@@ -42,7 +42,7 @@ export default function ApplyCard({ projectId, onApplied }) {
         className="w-full px-4 py-3 mt-3"
         data-testid="apply-sample-input"
       />
-      {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
+      {err && <div className="text-ember text-sm mt-3">{err}</div>}
       <button
         disabled={loading}
         className="btn-primary w-full mt-4 inline-flex items-center justify-center gap-2 disabled:opacity-50"

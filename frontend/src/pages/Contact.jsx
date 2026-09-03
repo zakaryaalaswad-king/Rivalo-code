@@ -34,7 +34,7 @@ export default function Contact() {
         <div className="md:col-span-2">
           {done ? (
             <div className="card p-10 text-center" data-testid="contact-success">
-              <CheckCircle2 className="text-[#22C55E] mx-auto" size={42} />
+              <CheckCircle2 className="text-[var(--volt-ink)] mx-auto" size={42} />
               <h2 className="font-display text-3xl mt-4">Message received</h2>
               <p className="text-muted mt-2 text-sm">Thanks {form.name || "friend"} — we'll reply to <strong>{form.email}</strong> within {COMPANY.responseTimeSLA}.</p>
               <div className="mt-6 flex flex-wrap gap-3 justify-center">
@@ -66,7 +66,7 @@ export default function Contact() {
               </Field>
               {/* honeypot — bots fill it, humans don't */}
               <input type="text" value={form.honeypot} onChange={set("honeypot")} tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
-              {err && <div className="text-red-400 text-sm">{err}</div>}
+              {err && <div className="text-ember text-sm">{err}</div>}
               <button disabled={busy} className="btn-primary w-full inline-flex items-center justify-center gap-2" data-testid="contact-submit">
                 <Send size={14} /> {busy ? "Sending…" : "Send message"}
               </button>
@@ -83,7 +83,7 @@ export default function Contact() {
           <InfoCard icon={Mail} label="Legal" value={COMPANY.emails.legal} href={`mailto:${COMPANY.emails.legal}`} />
           <InfoCard icon={MapPin} label="Address" value={COMPANY.businessAddress} />
           <InfoCard icon={Clock} label="Hours" value={COMPANY.businessHours} />
-          <InfoCard icon={MessageCircle} label="Or chat" value="Open the floating Rivalo Coach for instant guidance." />
+          <InfoCard icon={MessageCircle} label="Or chat" value="Open the floating Rivaloz Coach for instant guidance." />
         </div>
       </div>
     </div>
@@ -96,7 +96,7 @@ function Field({ label, children }) {
 function InfoCard({ icon: Icon, label, value, href }) {
   const body = (
     <div className="card p-4 flex items-start gap-3">
-      <Icon size={16} className="text-[#3B82F6] mt-0.5" />
+      <Icon size={16} className="text-[var(--cobalt)] mt-0.5" />
       <div>
         <div className="text-[10px] tracking-widest uppercase text-muted">{label}</div>
         <div className="text-sm mt-0.5 break-words">{value}</div>

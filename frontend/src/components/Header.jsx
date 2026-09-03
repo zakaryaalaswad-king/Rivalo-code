@@ -3,22 +3,33 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import Logo from "./Logo";
 import TrustRing from "./TrustRing";
-import { LogOut, LayoutDashboard, PlusCircle, Compass, ChevronDown, User } from "lucide-react";
+import { LogOut, LayoutDashboard, PlusCircle, ChevronDown, User } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
-function Avatar({ user, size = 36 }) {
+function Avatar({ user, size = 34 }) {
   if (user.avatar_url) {
     const token = sessionStorage.getItem("ab_token") || "";
-    const url = user.avatar_url.startsWith("http") ? user.avatar_url : `${process.env.REACT_APP_BACKEND_URL}${user.avatar_url}${user.avatar_url.includes("?") ? "&" : "?"}auth=${token}`;
+    const url = user.avatar_url.startsWith("http")
+      ? user.avatar_url
+      : `${process.env.REACT_APP_BACKEND_URL}${user.avatar_url}${user.avatar_url.includes("?") ? "&" : "?"}auth=${token}`;
     return <img src={url} alt={user.name} style={{ width: size, height: size }} className="rounded-full object-cover" />;
   }
   const initial = (user.name || user.email || "?")[0].toUpperCase();
   return (
-    <div style={{ width: size, height: size }} className="rounded-full bg-gradient-to-br from-[#3B82F6] to-[#22C55E] flex items-center justify-center text-white font-semibold">
+    <div
+      style={{ width: size, height: size, background: "var(--cobalt)" }}
+      className="rounded-full flex items-center justify-center text-white font-semibold"
+    >
       {initial}
     </div>
   );
 }
+
+const NAV_LINKS = [
+  { to: "/browse", label: "Browse" },
+  { to: "/how-it-works", label: "How it works" },
+  { to: "/pricing", label: "Pricing" },
+];
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -33,40 +44,59 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0F172A]/80 border-b border-white/5">
-      <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5" data-testid="header-logo">
-          <Logo size={28} animated />
-          <span className="font-display text-2xl tracking-tight">Rival<span className="text-[#3B82F6]">o</span></span>
+    <header className="shell sticky top-0 z-40 border-b" style={{ borderColor: "var(--shell-hairline)" }}>
+      <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-2.5 shrink-0" data-testid="header-logo">
+          <Logo size={26} />
+          <span className="font-display text-xl tracking-tight text-white">Rivaloz</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-2">
-          <NavLink to="/browse" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-browse"><span className="inline-flex items-center gap-2"><Compass size={14} /> Browse</span></NavLink>
-          <NavLink to="/how-it-works" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-how">How it works</NavLink>
-          <NavLink to="/pricing" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-pricing">Pricing</NavLink>
+
+        <nav className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              className={({ isActive }) => `nav-link text-sm ${isActive ? "active" : ""}`}
+              data-testid={`nav-${l.label.toLowerCase().replace(/\s+/g, "-")}`}
+            >
+              {l.label}
+            </NavLink>
+          ))}
           {user && user !== false && (
-            <NavLink to="/dashboard" className={({ isActive }) => `text-sm nav-glass ${isActive ? "active" : "text-slate-300 hover:text-white"}`} data-testid="nav-dashboard"><span className="inline-flex items-center gap-2"><LayoutDashboard size={14} /> Dashboard</span></NavLink>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) => `nav-link text-sm inline-flex items-center gap-1.5 ${isActive ? "active" : ""}`}
+              data-testid="nav-dashboard"
+            >
+              <LayoutDashboard size={14} /> Dashboard
+            </NavLink>
           )}
         </nav>
+
         <div className="flex items-center gap-3">
           {user && user !== false ? (
             <>
               <Link to="/post" className="hidden sm:inline-flex items-center gap-2 btn-primary text-sm" data-testid="header-post-project-btn">
-                <PlusCircle size={16} /> Post project
+                <PlusCircle size={16} /> Post brief
               </Link>
               <NotificationBell />
               <div className="relative" ref={ref}>
-                <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 pl-3 border-l border-white/10 hover:opacity-90" data-testid="avatar-menu-btn">
+                <button
+                  onClick={() => setOpen((o) => !o)}
+                  className="flex items-center gap-2 pl-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
+                  data-testid="avatar-menu-btn"
+                >
                   <Avatar user={user} />
-                  <ChevronDown size={14} className="text-slate-400" />
+                  <ChevronDown size={14} className="text-slate" />
                 </button>
                 {open && (
-                  <div className="absolute right-0 mt-2 w-72 card shadow-2xl overflow-hidden" data-testid="avatar-menu-dropdown">
-                    <div className="px-4 py-4 border-b border-white/5 flex items-start gap-3">
-                      <Avatar user={user} size={48} />
+                  <div className="shell-card absolute right-0 mt-2 w-72 shadow-2xl overflow-hidden" data-testid="avatar-menu-dropdown">
+                    <div className="px-4 py-4 flex items-start gap-3" style={{ borderBottom: "1px solid var(--shell-hairline)" }}>
+                      <Avatar user={user} size={44} />
                       <div className="min-w-0 flex-1">
-                        <div className="font-semibold truncate">{user.name}</div>
-                        <div className="text-xs text-muted truncate">{user.email}</div>
-                        {!user.email_verified && <span className="chip chip-amber mt-1.5 inline-block">Unverified</span>}
+                        <div className="font-semibold truncate text-white">{user.name}</div>
+                        <div className="text-xs text-slate truncate">{user.email}</div>
+                        {!user.email_verified && <span className="pill pill-ember mt-1.5 inline-block">Unverified</span>}
                       </div>
                       <button
                         onClick={() => { setOpen(false); nav("/profile"); }}
@@ -74,16 +104,18 @@ export default function Header() {
                         className="!p-0 !bg-transparent hover:scale-105 transition-transform"
                         data-testid="header-trust-ring-btn"
                       >
-                        <TrustRing points={user.trust_points || 0} size={52} stroke={6} />
+                        <TrustRing points={user.trust_points || 0} size={48} stroke={5} />
                       </button>
                     </div>
-                    <button onClick={() => { setOpen(false); nav("/profile"); }} className="w-full text-left px-4 py-2.5 text-sm hover:bg-white/5 flex items-center gap-2" data-testid="menu-profile-management">
-                      <User size={14} /> Profile management
-                    </button>
-                    <Link to="/dashboard" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-white/5"><LayoutDashboard size={14} className="inline mr-2" />Dashboard</Link>
-                    <Link to="/post" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-white/5"><PlusCircle size={14} className="inline mr-2" />Post a brief</Link>
-                    <div className="border-t border-white/5" />
-                    <button onClick={async () => { setOpen(false); await logout(); nav("/"); }} className="w-full text-left px-4 py-2.5 text-sm text-red-300 hover:bg-red-500/10 flex items-center gap-2" data-testid="menu-logout">
+                    <MenuButton onClick={() => { setOpen(false); nav("/profile"); }} icon={User} label="Profile management" testid="menu-profile-management" />
+                    <MenuButton onClick={() => { setOpen(false); nav("/dashboard"); }} icon={LayoutDashboard} label="Dashboard" />
+                    <MenuButton onClick={() => { setOpen(false); nav("/post"); }} icon={PlusCircle} label="Post a brief" />
+                    <div style={{ borderTop: "1px solid var(--shell-hairline)" }} />
+                    <button
+                      onClick={async () => { setOpen(false); await logout(); nav("/"); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-[#FF9985] hover:bg-[#FF6B4A]/10 flex items-center gap-2"
+                      data-testid="menu-logout"
+                    >
                       <LogOut size={14} /> Log out
                     </button>
                   </div>
@@ -92,12 +124,24 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" className="text-sm text-slate-300 hover:text-white" data-testid="nav-login">Log in</Link>
-              <Link to="/register" className="btn-primary text-sm" data-testid="nav-register">Join Rivalo</Link>
+              <Link to="/login" className="nav-link text-sm" data-testid="nav-login">Log in</Link>
+              <Link to="/register" className="btn-primary text-sm" data-testid="nav-register">Join Rivaloz</Link>
             </>
           )}
         </div>
       </div>
     </header>
+  );
+}
+
+function MenuButton({ onClick, icon: I, label, testid }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-white/5 flex items-center gap-2"
+      data-testid={testid}
+    >
+      <I size={14} /> {label}
+    </button>
   );
 }

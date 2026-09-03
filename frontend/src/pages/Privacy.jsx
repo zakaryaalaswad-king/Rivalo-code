@@ -4,10 +4,10 @@ import { Shield } from "lucide-react";
 export default function Privacy() {
   return (
     <div className="max-w-3xl mx-auto px-6 md:px-10 py-16">
-      <div className="flex items-center gap-3"><Shield className="text-[#3B82F6]" size={28} /><h1 className="font-display text-4xl">Privacy Policy</h1></div>
+      <div className="flex items-center gap-3"><Shield className="text-[var(--cobalt)]" size={28} /><h1 className="font-display text-4xl">Privacy Policy</h1></div>
       <div className="text-muted text-sm mt-3">Last updated: {COMPANY.lastUpdated} · Effective for users worldwide</div>
 
-      <div className="mt-10 space-y-7 text-slate-300 leading-relaxed text-[15px]">
+      <div className="mt-10 space-y-7 text-graphite leading-relaxed text-[15px]">
         <Section title="1. Who we are">
           {COMPANY.legalName} (“{COMPANY.brandName}”, “we”, “us”, “our”) operates the {COMPANY.brandName} platform at {COMPANY.websiteUrl}.
           We are organised in {COMPANY.state}, {COMPANY.country}. This Privacy Policy describes how we collect, use, store, share,
@@ -45,7 +45,7 @@ export default function Privacy() {
 
         <Section title="5. Sharing of information">
           We share data with: <b>Stripe</b> (payments &amp; payouts, including KYC where applicable); <b>Resend</b> (transactional email
-          delivery); our cloud / object-storage providers; AI providers powering Rivalo Coach (chat content is processed under
+          delivery); our cloud / object-storage providers; AI providers powering Rivaloz Coach (chat content is processed under
           their privacy terms); and authorities when legally required. We do <b>not</b> sell your personal data and we do not use
           your private data to train third-party large language models without consent.
         </Section>
@@ -65,12 +65,12 @@ export default function Privacy() {
         <Section title="8. Data security">
           We use industry-standard measures: HTTPS everywhere, bcrypt password hashing, encrypted-at-rest storage, JWT auth with
           httpOnly cookies, signed file access tokens, audit logs, and least-privilege access controls. No system is 100% secure;
-          please use a strong unique password, enable email verification, and notify us at <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.abuse}`}>{COMPANY.emails.abuse}</a> if you suspect a breach.
+          please use a strong unique password, enable email verification, and notify us at <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.abuse}`}>{COMPANY.emails.abuse}</a> if you suspect a breach.
         </Section>
 
         <Section title="9. Your rights">
           Depending on where you live, you may have the right to: access, rectify, delete, restrict or object to the processing of
-          your personal data; data portability; and to withdraw consent. To exercise these rights, email <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a>.
+          your personal data; data portability; and to withdraw consent. To exercise these rights, email <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a>.
           We will respond within statutory timelines and may require identity verification.
         </Section>
 
@@ -80,17 +80,17 @@ export default function Privacy() {
           <b> correct</b> inaccurate personal information; (d) the right to <b>opt-out of sale or sharing</b> of personal information for
           cross-context behavioural advertising (we do not sell or share personal information in this sense); (e) the right to
           <b> limit use of sensitive personal information</b>; and (f) the right to non-discrimination for exercising your privacy rights.
-          To exercise CCPA/CPRA rights, email <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a> or contact our Privacy Officer at the address below.
+          To exercise CCPA/CPRA rights, email <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a> or contact our Privacy Officer at the address below.
         </Section>
 
         <Section title="11. Children's privacy (COPPA)">
           {COMPANY.brandName} is not directed at children under 16, and we do not knowingly collect personal information from
           children under 13. If we learn we have collected information from a child under 13, we will delete it promptly. Parents
-          or guardians can contact <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a>.
+          or guardians can contact <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a>.
         </Section>
 
         <Section title="12. AI features">
-          Rivalo Coach and other AI features may process the content you share with them. We instruct our AI providers not to use
+          Rivaloz Coach and other AI features may process the content you share with them. We instruct our AI providers not to use
           this content to train their public models. AI outputs may be inaccurate; please verify outputs and never use them to
           replace your own judgement for legal, financial, medical, or safety decisions.
         </Section>
@@ -107,7 +107,7 @@ export default function Privacy() {
 
         <Section title="15. Contact us">
           <div>{COMPANY.privacyOfficer}<br/>{COMPANY.legalName}<br/>{COMPANY.businessAddress}</div>
-          <div className="mt-2">Privacy: <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a> · DPO: <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.dataProtectionContact}`}>{COMPANY.dataProtectionContact}</a></div>
+          <div className="mt-2">Privacy: <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.privacy}`}>{COMPANY.emails.privacy}</a> · DPO: <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.dataProtectionContact}`}>{COMPANY.dataProtectionContact}</a></div>
         </Section>
 
         <div className="text-xs text-muted pt-6 border-t border-white/5">

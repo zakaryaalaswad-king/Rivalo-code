@@ -15,40 +15,66 @@ export default function Login() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setErr(""); setLoading(true);
+    setErr("");
+    setLoading(true);
     try {
       await login(email, password);
       const to = loc.state?.from || "/dashboard";
       nav(to, { replace: true });
-    } catch (e2) { setErr(formatApiError(e2)); }
-    finally { setLoading(false); }
+    } catch (e2) {
+      setErr(formatApiError(e2));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16">
+    <div className="shell min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-block"><Logo size={42} animated /></div>
-          <h1 className="font-display text-4xl mt-4">Welcome back to <span className="text-[#3B82F6]">Rivalo</span></h1>
-          <p className="text-slate-400 mt-2 text-sm">Pick up where the arena left you.</p>
+        <div className="text-center mb-8">
+          <div className="inline-block"><Logo size={42} /></div>
+          <h1 className="font-display text-4xl mt-4 text-white">Welcome back to Rivaloz</h1>
+          <p className="text-slate mt-2 text-sm">Pick up where the arena left you.</p>
         </div>
-        <form onSubmit={onSubmit} className="bg-[#0A0C22] border border-white/10 p-8 space-y-5" data-testid="login-form">
+        <form onSubmit={onSubmit} className="shell-card p-8 space-y-5" data-testid="login-form">
           <div>
-            <label className="text-xs tracking-widest uppercase text-slate-400">Email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} required type="email" className="w-full mt-2 px-4 py-3" data-testid="login-email-input" />
+            <label className="text-xs tracking-widest uppercase text-slate font-mono">Email</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              type="email"
+              className="w-full mt-2 px-4 py-3"
+              data-testid="login-email-input"
+            />
           </div>
           <div>
-            <label className="text-xs tracking-widest uppercase text-slate-400">Password</label>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} required type="password" className="w-full mt-2 px-4 py-3" data-testid="login-password-input" />
+            <label className="text-xs tracking-widest uppercase text-slate font-mono">Password</label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              type="password"
+              className="w-full mt-2 px-4 py-3"
+              data-testid="login-password-input"
+            />
           </div>
-          {err && <div className="text-red-400 text-sm" data-testid="login-error">{err}</div>}
-          <button disabled={loading} className="w-full btn-primary disabled:opacity-50" data-testid="login-submit-btn">
+          {err && <div className="text-ember text-sm" data-testid="login-error">{err}</div>}
+          <button
+            disabled={loading}
+            className="w-full btn-primary disabled:opacity-50"
+            data-testid="login-submit-btn"
+          >
             {loading ? "Signing in…" : "Sign in"}
           </button>
-          <div className="text-sm text-slate-400 text-center">
-            New here? <Link to="/register" className="text-[#3B82F6] hover:underline">Create an account</Link>
+          <div className="text-sm text-slate text-center">
+            New here?{" "}
+            <Link to="/register" className="text-[var(--volt)] hover:underline">Create an account</Link>
           </div>
-          <div className="text-xs text-slate-500 text-center border-t border-white/5 pt-4">
+          <div
+            className="text-xs text-slate text-center pt-4"
+            style={{ borderTop: "1px solid var(--shell-hairline)" }}
+          >
             Demo: <span className="font-mono">client@demo.com</span> / <span className="font-mono">demo1234</span>
           </div>
         </form>

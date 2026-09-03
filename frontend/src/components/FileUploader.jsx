@@ -41,25 +41,29 @@ export default function FileUploader({ value = [], onChange, max = 5, accept = "
     <div data-testid="file-uploader">
       <input ref={ref} type="file" accept={accept} multiple onChange={onPick} className="hidden" data-testid="file-uploader-input" />
       <button type="button" onClick={() => ref.current?.click()} disabled={busy || value.length >= max}
-        className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 hover:border-[#3B82F6] text-sm disabled:opacity-50" data-testid="file-uploader-btn">
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors disabled:opacity-50"
+        style={{ border: "1px solid var(--hairline-strong)", color: "var(--graphite)", background: "#fff" }}
+        data-testid="file-uploader-btn">
         <Upload size={14} /> {busy ? "Uploading…" : `Add files (${value.length}/${max})`}
       </button>
-      {err && <div className="text-red-400 text-xs mt-2">{err}</div>}
+      {err && <div className="text-ember text-xs mt-2">{err}</div>}
       {value.length > 0 && (
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {value.map((f, i) => {
             const isImg = (f.content_type || "").startsWith("image/");
             return (
-              <div key={f.url || i} className="relative border border-white/10 bg-[#101230] p-2 group" data-testid={`file-item-${i}`}>
+              <div key={f.url || `f-${i}`} className="relative rounded-lg p-2 group"
+                style={{ border: "1px solid var(--hairline)", background: "#fff" }}
+                data-testid={`file-item-${i}`}>
                 {isImg ? (
-                  <img src={fullUrl(f.url)} alt={f.filename} className="w-full h-24 object-cover" />
+                  <img src={fullUrl(f.url)} alt={f.filename} className="w-full h-24 object-cover rounded" />
                 ) : (
-                  <div className="w-full h-24 flex flex-col items-center justify-center text-slate-400 text-xs">
+                  <div className="w-full h-24 flex flex-col items-center justify-center text-slate text-xs">
                     <FileText size={20} /> <span className="mt-1 truncate w-full text-center px-1">{f.filename}</span>
                   </div>
                 )}
-                <button type="button" onClick={() => remove(i)} className="absolute top-1 right-1 bg-black/70 hover:bg-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity" data-testid={`file-remove-${i}`}>
-                  <X size={12} />
+                <button type="button" onClick={() => remove(i)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--ember)] p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity" data-testid={`file-remove-${i}`}>
+                  <X size={12} className="text-white" />
                 </button>
               </div>
             );

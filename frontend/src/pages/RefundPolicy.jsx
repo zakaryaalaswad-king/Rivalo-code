@@ -4,10 +4,10 @@ import { RefreshCw } from "lucide-react";
 export default function RefundPolicy() {
   return (
     <div className="max-w-3xl mx-auto px-6 md:px-10 py-16">
-      <div className="flex items-center gap-3"><RefreshCw className="text-[#22C55E]" size={28} /><h1 className="font-display text-4xl">Refund Policy</h1></div>
+      <div className="flex items-center gap-3"><RefreshCw className="text-[var(--volt-ink)]" size={28} /><h1 className="font-display text-4xl">Refund Policy</h1></div>
       <div className="text-muted text-sm mt-3">Last updated: {COMPANY.lastUpdated}</div>
 
-      <div className="mt-10 space-y-8 text-slate-300 leading-relaxed text-[15px]">
+      <div className="mt-10 space-y-8 text-graphite leading-relaxed text-[15px]">
         <Section title="1. Overview">
           {COMPANY.legalName} (“{COMPANY.brandName}”) provides a SaaS marketplace for competitive freelance work. This Refund Policy
           explains when subscriptions and platform charges may be refunded. By using the Service you agree to this Policy and to our
@@ -48,7 +48,7 @@ export default function RefundPolicy() {
         </Section>
 
         <Section title="6. How to request a refund">
-          Email <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.refunds}`}>{COMPANY.emails.refunds}</a> from
+          Email <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.refunds}`}>{COMPANY.emails.refunds}</a> from
           the address on your {COMPANY.brandName} account, with: your user ID, the Stripe receipt or session ID, and a short
           explanation. We respond within {COMPANY.responseTimeSLA}.
         </Section>
@@ -71,8 +71,8 @@ export default function RefundPolicy() {
         </Section>
 
         <Section title="10. Contact">
-          Refund questions: <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.refunds}`}>{COMPANY.emails.refunds}</a><br/>
-          Billing & legal: <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.legal}`}>{COMPANY.emails.legal}</a>
+          Refund questions: <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.refunds}`}>{COMPANY.emails.refunds}</a><br/>
+          Billing & legal: <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.legal}`}>{COMPANY.emails.legal}</a>
         </Section>
 
         <div className="text-xs text-muted pt-6 border-t border-white/5">

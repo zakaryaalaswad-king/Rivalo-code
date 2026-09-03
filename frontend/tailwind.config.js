@@ -13,6 +13,16 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)'
       },
       colors: {
+        ink: 'var(--ink)',
+        'ink-2': 'var(--ink-2)',
+        canvas: 'var(--canvas)',
+        'canvas-2': 'var(--canvas-2)',
+        volt: 'var(--volt)',
+        cobalt: 'var(--cobalt)',
+        ember: 'var(--ember)',
+        graphite: 'var(--graphite)',
+        slate: 'var(--slate)',
+        hairline: 'var(--hairline)',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -53,6 +63,11 @@ module.exports = {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))'
         }
+      },
+      fontFamily: {
+        display: ['Clash Display', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Satoshi', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
       },
       keyframes: {
         'accordion-down': {

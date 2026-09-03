@@ -4,10 +4,10 @@ import { FileText } from "lucide-react";
 export default function Terms() {
   return (
     <div className="max-w-3xl mx-auto px-6 md:px-10 py-16">
-      <div className="flex items-center gap-3"><FileText className="text-[#22C55E]" size={28} /><h1 className="font-display text-4xl">Terms of Service</h1></div>
+      <div className="flex items-center gap-3"><FileText className="text-[var(--volt-ink)]" size={28} /><h1 className="font-display text-4xl">Terms of Service</h1></div>
       <div className="text-muted text-sm mt-3">Last updated: {COMPANY.lastUpdated}</div>
 
-      <div className="mt-10 space-y-7 text-slate-300 leading-relaxed text-[15px]">
+      <div className="mt-10 space-y-7 text-graphite leading-relaxed text-[15px]">
         <Section title="1. Acceptance">
           These Terms of Service (the “Terms”) form a binding agreement between you and {COMPANY.legalName} (“{COMPANY.brandName}”).
           By creating an account, accessing, or using the Service you agree to these Terms and to our <a href="/privacy" className="underline">Privacy Policy</a>. If you do not agree, do not use the Service.
@@ -40,7 +40,7 @@ export default function Terms() {
         </Section>
 
         <Section title="6. AI disclaimer">
-          Rivalo Coach and other AI features are provided "as is." Outputs may be inaccurate, biased, or out of date. You remain
+          Rivaloz Coach and other AI features are provided "as is." Outputs may be inaccurate, biased, or out of date. You remain
           fully responsible for verifying outputs and for your own work product. We explicitly instruct our AI not to write final
           deliverables for competitors or to reveal another user's submission.
         </Section>
@@ -128,7 +128,7 @@ export default function Terms() {
         </Section>
 
         <Section title="20. Contact">
-          Legal: <a className="text-[#3B82F6] hover:underline" href={`mailto:${COMPANY.emails.legal}`}>{COMPANY.emails.legal}</a><br/>
+          Legal: <a className="text-[var(--cobalt)] hover:underline" href={`mailto:${COMPANY.emails.legal}`}>{COMPANY.emails.legal}</a><br/>
           {COMPANY.legalName} · {COMPANY.businessAddress}
         </Section>
 

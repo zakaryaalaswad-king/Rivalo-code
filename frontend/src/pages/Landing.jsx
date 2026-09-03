@@ -1,11 +1,21 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Zap, Shield, Sparkles, ArrowRight, Brush, Code2, PenTool, Camera, BarChart3, Megaphone, Music2, Boxes } from "lucide-react";
+import {
+  ArrowRight,
+  Brush,
+  Code2,
+  PenTool,
+  Camera,
+  BarChart3,
+  Megaphone,
+  Music2,
+  Boxes,
+  Trophy,
+  Zap,
+  Timer,
+} from "lucide-react";
 import api from "../lib/api";
-import { Reveal } from "../lib/reveal";
-import Logo from "../components/Logo";
 
-const HERO_BG = "https://images.pexels.com/photos/5506217/pexels-photo-5506217.jpeg";
 const CATS = [
   { name: "Graphic Design", icon: Brush },
   { name: "Web Development", icon: Code2 },
@@ -19,169 +29,269 @@ const CATS = [
 
 export default function Landing() {
   const [stats, setStats] = useState({ open_projects: 0, completed: 0, users: 0 });
-  const [scrollY, setScrollY] = useState(0);
-  useEffect(() => { api.get("/stats").then((r) => setStats(r.data)).catch(() => {}); }, []);
+
   useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    api.get("/stats").then((r) => setStats(r.data)).catch(() => {});
   }, []);
 
   return (
-    <div className="relative">
-      {/* HERO */}
-      <section className="relative overflow-hidden grain">
-        <div className="absolute inset-0" style={{ transform: `translateY(${scrollY * 0.18}px)` }}>
-          <img src={HERO_BG} alt="" className="w-full h-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#050614]/40 via-[#050614]/70 to-[#050614]" />
-        </div>
-        {/* floating neon orbs */}
-        <div className="absolute top-20 right-[10%] w-32 h-32 rounded-full float-slow" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.55), transparent 70%)", filter: "blur(20px)", transform: `translateY(${scrollY * -0.08}px)` }} />
-        <div className="absolute bottom-32 left-[5%] w-40 h-40 rounded-full float-slow" style={{ background: "radial-gradient(circle, rgba(212,175,55,0.5), transparent 70%)", filter: "blur(24px)", animationDelay: "2s", transform: `translateY(${scrollY * -0.12}px)` }} />
-
-        <div className="relative max-w-7xl mx-auto px-6 md:px-10 pt-24 md:pt-32 pb-32">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
-            <div className="md:col-span-8">
-              <Reveal direction="up"><span className="pill" data-testid="hero-pill">Rivalry · Rewarded</span></Reveal>
-              <Reveal delay={120} direction="up">
-                <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl tracking-tighter leading-[0.95] mt-6">
-                  Two rivals enter.<br />
-                  <span className="bg-gradient-to-r from-[#3B82F6] via-[#60A5FA] to-[#22C55E] bg-clip-text text-transparent">One claims the win.</span>
-                </h1>
-              </Reveal>
-              <Reveal delay={240} direction="left">
-                <p className="mt-8 text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed">
-                  Rivalo is the competitive marketplace for freelancers. Clients post a brief.
-                  Up to ten freelancers pitch. Three are crowned to compete head-to-head — only one takes the bounty.
-                </p>
-              </Reveal>
-              <Reveal delay={360} direction="up">
-                <div className="mt-10 flex flex-wrap gap-3">
-                  <Link to="/register" className="btn-primary inline-flex items-center gap-2" data-testid="hero-join-btn">
-                    Enter Rivalo <ArrowRight size={18} />
-                  </Link>
-                  <Link to="/browse" className="btn-ghost" data-testid="hero-browse-btn">Browse open briefs</Link>
-                </div>
-              </Reveal>
-            </div>
-            <Reveal delay={480} direction="right" className="md:col-span-4">
-              <div className="bg-[#0A0C22]/80 backdrop-blur-md border border-[#D4AF37]/30 p-6 tracing-beam relative neon-gold-glow">
-                <div className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase">Live arena</div>
-                <div className="mt-4 grid grid-cols-3 gap-4">
-                  <Stat label="Open" value={stats.open_projects} />
-                  <Stat label="Won" value={stats.completed} />
-                  <Stat label="Talent" value={stats.users} />
-                </div>
-                <div className="mt-6 text-sm text-slate-400">A new brief posts every few hours. Freelancers, refresh fast.</div>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-
-        {/* marquee strip */}
-        <div className="relative border-y border-white/5 bg-[#050614]/40 backdrop-blur py-5 overflow-hidden">
-          <div className="marquee text-slate-500 text-sm tracking-[0.3em] uppercase">
-            {["a", "b"].map((k) => (
-              <div key={k} className="flex gap-12">
-                {["Branding", "Web Apps", "Motion", "Mobile", "Copy", "3D", "SEO", "Pitch Decks", "AI/ML", "Music"].map((c) => (
-                  <span key={`${k}-${c}`} className="inline-flex items-center gap-3">
-                    <Sparkles size={12} className="text-[#D4AF37]" /> {c}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="relative max-w-7xl mx-auto px-6 md:px-10 py-28">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
-          <div className="md:col-span-4">
-            <Reveal direction="left"><span className="pill">The Ritual</span></Reveal>
-            <Reveal delay={120} direction="left"><h2 className="font-display text-4xl lg:text-5xl mt-6 leading-tight">Four steps. <span className="text-[#22C55E]">One</span> winner.</h2></Reveal>
-            <Reveal delay={240} direction="left"><p className="mt-4 text-muted">Clients see proven work before they pay. Freelancers compete on merit, not the lowest bid.</p></Reveal>
-          </div>
-          <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {[
-              { n: "01", t: "Brief", d: "A business owner posts the project, sets a bounty (2 hr – 5 day window), funds it via Stripe escrow." },
-              { n: "02", t: "Applications", d: "Up to ten freelancers pitch with their portfolio and angle. Free to apply." },
-              { n: "03", t: "Approval", d: "The client picks three. Approved competitors are notified by email instantly." },
-              { n: "04", t: "Showdown", d: "Approved talent submits work before the timer ends. Client picks the winner. Bounty released." },
-            ].map((s, i) => (
-              <Reveal key={s.n} delay={i * 100} direction={i % 2 === 0 ? "up" : "scale"}>
-                <div className="card p-7 hover:-translate-y-1 hover:border-[#3B82F6]/40 transition-all" data-testid={`step-${s.n}`}>
-                  <div className="font-mono text-[#3B82F6] text-sm">{s.n}</div>
-                  <div className="font-display text-2xl mt-3">{s.t}</div>
-                  <div className="text-muted mt-2 text-sm leading-relaxed">{s.d}</div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="relative bg-[#0A0C22]/60 backdrop-blur border-y border-white/10 py-24">
-        <div className="max-w-7xl mx-auto px-6 md:px-10">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <Reveal direction="up"><span className="pill">Disciplines</span></Reveal>
-              <Reveal delay={120} direction="up"><h2 className="font-display text-4xl lg:text-5xl mt-6">Every craft has its <span className="text-[#3B82F6] italic">arena</span>.</h2></Reveal>
-            </div>
-            <Link to="/browse" className="text-[#3B82F6] hover:underline text-sm tracking-wide">Browse all briefs →</Link>
-          </div>
-          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-            {CATS.map(({ name, icon: I }, i) => (
-              <Reveal key={name} delay={i * 60} direction={i % 2 === 0 ? "up" : "scale"}>
-                <Link to={`/browse?category=${encodeURIComponent(name)}`} className="group block card p-6 hover:border-[#22C55E]/60 transition-all" data-testid={`category-${i}`}>
-                  <I className="text-[#3B82F6] group-hover:text-[#22C55E] transition-colors" size={26} />
-                  <div className="mt-4 text-sm">{name}</div>
-                  <div className="text-xs text-muted mt-1 group-hover:text-[#22C55E]">Enter →</div>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FOR EACH SIDE */}
-      <section className="max-w-7xl mx-auto px-6 md:px-10 py-28 grid grid-cols-1 md:grid-cols-2 gap-8">
-        {[
-          { tag: "For clients", title: "Stop guessing. See three pitches.", points: ["Hand-pick from up to 10 applicants", "Pay only one winner — no retainers", "Tight 2 hr–5 day windows keep momentum", "Bounty held in Stripe escrow until you choose"], cta: { to: "/post", label: "Post a brief" }, color: "#3B82F6" },
-          { tag: "For freelancers", title: "Win on craft, not the lowest bid.", points: ["Pitch with your portfolio, not your price", "Approved? Compete head-to-head with two others", "Build wins, ratings, and a public profile", "No hidden fees, no proposal credits"], cta: { to: "/register", label: "Join Rivalo" }, color: "#22C55E" },
-        ].map((b, i) => (
-          <Reveal key={b.tag} delay={i * 150} direction={i === 0 ? "left" : "right"}>
-            <div className="card p-10 relative overflow-hidden h-full">
-              <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full" style={{ background: `radial-gradient(circle, ${b.color}44, transparent 70%)`, filter: "blur(10px)" }} />
-              <div className="relative">
-                <span className="pill" style={{ color: b.color, borderColor: `${b.color}55`, background: `${b.color}10` }}>{b.tag}</span>
-                <h3 className="font-display text-3xl lg:text-4xl mt-6">{b.title}</h3>
-                <ul className="mt-6 space-y-3">
-                  {b.points.map((p) => (
-                    <li key={p} className="flex items-start gap-3 text-slate-300">
-                      <Sparkles size={16} className="text-[#3B82F6] mt-1 shrink-0" /><span>{p}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link to={b.cta.to} className="mt-8 btn-ghost inline-flex items-center gap-2 text-sm" data-testid={`cta-${b.tag.replace(/\s+/g, '-').toLowerCase()}`}>
-                  {b.cta.label} <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-          </Reveal>
-        ))}
-      </section>
-
+    <div>
+      <HeroBattle stats={stats} />
+      <HowItWorks />
+      <Categories />
+      <ForEachSide />
     </div>
   );
 }
 
-function Stat({ label, value }) {
+/* ------------------------------------------------------------------ */
+/* HERO — live battle visual instead of a generic gradient headline    */
+/* ------------------------------------------------------------------ */
+function HeroBattle({ stats }) {
   return (
-    <div className="text-center">
-      <div className="font-mono text-3xl text-[#3B82F6]">{value}</div>
-      <div className="text-[10px] tracking-widest text-muted uppercase mt-1">{label}</div>
+    <section className="shell relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        {/* Left copy */}
+        <div className="lg:col-span-6">
+          <span className="pill pill-cobalt" data-testid="hero-pill">Live · competitive freelance</span>
+          <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl mt-6 leading-[0.95] text-white">
+            Two rivals enter.
+            <br />
+            One claims the bounty.
+          </h1>
+          <p className="mt-6 text-lg text-white/70 max-w-xl leading-relaxed">
+            Rivaloz is the arena where three freelancers compete head-to-head on a
+            client&rsquo;s brief. Timed. Judged. Paid.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link to="/register" className="btn-primary inline-flex items-center gap-2" data-testid="hero-join-btn">
+              Enter Rivaloz <ArrowRight size={16} />
+            </Link>
+            <Link to="/browse" className="btn-ghost text-white inline-flex items-center gap-2" data-testid="hero-browse-btn">
+              Browse open briefs
+            </Link>
+          </div>
+
+          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+            <HeroStat label="Open briefs" value={stats.open_projects} accent="cobalt" />
+            <HeroStat label="Wins paid" value={stats.completed} accent="volt" />
+            <HeroStat label="Talent" value={stats.users} accent="ember" />
+          </div>
+        </div>
+
+        {/* Right: static battle diorama */}
+        <div className="lg:col-span-6">
+          <BattleDiorama />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroStat({ label, value, accent }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={`font-mono text-3xl scoreboard-value ${accent}`}>{String(value).padStart(2, "0")}</span>
+      <span className="font-mono text-[10px] uppercase tracking-widest text-slate">{label}</span>
     </div>
+  );
+}
+
+function BattleDiorama() {
+  // Deliberate, single "signature" moment: three competitor tiles arranged like
+  // an arena bracket. Cobalt for the two contenders, volt for the champion.
+  return (
+    <div className="relative">
+      <div className="shell-card p-5 md:p-6" data-testid="hero-diorama">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[var(--ember)] animate-pulse" />
+            <span className="font-mono text-[11px] uppercase tracking-widest text-slate">Live arena · brief #482</span>
+          </div>
+          <span className="pill pill-ember font-mono">
+            <Timer size={11} className="inline mr-1" /> 02:14:33
+          </span>
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <Contender name="Maya K." role="Brand · 6y" score={78} color="cobalt" />
+          <Contender name="Ari D." role="Motion · 4y" score={81} color="cobalt" />
+          <Contender name="Léa T." role="Type · 8y" score={94} color="volt" isWinner />
+        </div>
+
+        <div className="mt-5 flex items-center justify-between border-t pt-4" style={{ borderColor: "var(--shell-hairline)" }}>
+          <div className="text-xs text-slate">
+            Bounty <span className="font-mono text-white text-sm ml-1">$2,400</span>
+          </div>
+          <div className="text-xs inline-flex items-center gap-1.5 text-[var(--volt)]">
+            <Trophy size={12} /> Winner chosen
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute -top-4 -right-4 pill pill-volt font-mono text-xs shadow-lg hidden md:inline-block">
+        <Zap size={11} className="inline mr-1" /> Match paid in 3.2s
+      </div>
+    </div>
+  );
+}
+
+function Contender({ name, role, score, color, isWinner }) {
+  const isVolt = color === "volt";
+  return (
+    <div
+      className={`relative rounded-lg p-4 ${isVolt ? "" : "bg-white/[0.04]"} `}
+      style={{
+        background: isVolt ? "var(--volt)" : undefined,
+        color: isVolt ? "var(--volt-ink)" : "#F0EEE8",
+        border: `1px solid ${isVolt ? "var(--volt)" : "var(--shell-hairline)"}`,
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs ${isVolt ? "" : "bg-[var(--cobalt)] text-white"}`}
+             style={isVolt ? { background: "var(--volt-ink)", color: "var(--volt)" } : undefined}>
+          {name[0]}
+        </div>
+        {isWinner && <Trophy size={14} />}
+      </div>
+      <div className="mt-3 text-sm font-semibold leading-tight">{name}</div>
+      <div className="text-[10px] mt-0.5 opacity-70">{role}</div>
+      <div className="mt-3 font-mono text-2xl leading-none">{score}</div>
+      <div className="text-[10px] uppercase tracking-widest opacity-70 mt-1">score</div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* HOW IT WORKS — content on the canvas surface                        */
+/* ------------------------------------------------------------------ */
+function HowItWorks() {
+  const steps = [
+    { n: "01", t: "Brief", d: "A client posts a project, sets a bounty (2 hr – 5 day window), funds it via Stripe escrow." },
+    { n: "02", t: "Applications", d: "Up to ten freelancers pitch with their portfolio and angle. Free to apply." },
+    { n: "03", t: "Approval", d: "The client picks three. Approved competitors are notified by email instantly." },
+    { n: "04", t: "Showdown", d: "Approved talent submits before the timer ends. Client picks the winner. Bounty released." },
+  ];
+  return (
+    <section className="max-w-7xl mx-auto px-6 md:px-10 py-24">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
+        <div className="md:col-span-4">
+          <span className="pill pill-cobalt">The Ritual</span>
+          <h2 className="font-display text-4xl lg:text-5xl mt-6 leading-tight text-white">
+            Four steps.
+            <br /> One winner.
+          </h2>
+          <p className="mt-4 text-white/60 max-w-sm">
+            Clients see proven work before they pay. Freelancers compete on craft, not on lowest bid.
+          </p>
+        </div>
+        <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {steps.map((s) => (
+            <div key={s.n} className="card p-6" data-testid={`step-${s.n}`}>
+              <div className="font-mono text-[var(--cobalt)] text-sm">{s.n}</div>
+              <div className="font-display text-2xl mt-2 text-graphite">{s.t}</div>
+              <div className="text-slate mt-2 text-sm leading-relaxed">{s.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* CATEGORIES                                                          */
+/* ------------------------------------------------------------------ */
+function Categories() {
+  return (
+    <section className="shell border-y py-20" style={{ borderColor: "var(--shell-hairline)" }}>
+      <div className="max-w-7xl mx-auto px-6 md:px-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span className="pill pill-cobalt">Disciplines</span>
+            <h2 className="font-display text-4xl lg:text-5xl mt-6 text-white">Every craft has its arena.</h2>
+          </div>
+          <Link to="/browse" className="text-[var(--volt)] hover:underline text-sm">
+            Browse all briefs →
+          </Link>
+        </div>
+        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3">
+          {CATS.map(({ name, icon: I }, i) => (
+            <Link
+              key={name}
+              to={`/browse?category=${encodeURIComponent(name)}`}
+              className="shell-card p-5 hover:border-[var(--cobalt)] transition-colors group"
+              data-testid={`category-${i}`}
+              style={{ transitionProperty: "border-color, transform" }}
+            >
+              <I className="text-white/70 group-hover:text-[var(--volt)] transition-colors" size={22} />
+              <div className="mt-3 text-sm text-white">{name}</div>
+              <div className="text-xs text-slate mt-1 group-hover:text-[var(--volt)]">Enter →</div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* FOR EACH SIDE                                                       */
+/* ------------------------------------------------------------------ */
+function ForEachSide() {
+  const blocks = [
+    {
+      tag: "For clients",
+      color: "cobalt",
+      title: "Stop guessing. See three pitches.",
+      points: [
+        "Hand-pick from up to 10 applicants",
+        "Pay only one winner — no retainers",
+        "Tight 2 hr – 5 day windows keep momentum",
+        "Bounty held in Stripe escrow until you choose",
+      ],
+      cta: { to: "/post", label: "Post a brief" },
+    },
+    {
+      tag: "For freelancers",
+      color: "volt",
+      title: "Win on craft, not the lowest bid.",
+      points: [
+        "Pitch with your portfolio, not your price",
+        "Approved? Compete head-to-head with two others",
+        "Build wins, ratings, and a public profile",
+        "No hidden fees, no proposal credits",
+      ],
+      cta: { to: "/register", label: "Join Rivaloz" },
+    },
+  ];
+  return (
+    <section className="max-w-7xl mx-auto px-6 md:px-10 py-24 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {blocks.map((b) => (
+        <div key={b.tag} className="card p-8">
+          <span className={`pill ${b.color === "volt" ? "pill-volt" : "pill-cobalt"}`}>{b.tag}</span>
+          <h3 className="font-display text-3xl lg:text-4xl mt-5 text-graphite leading-tight">{b.title}</h3>
+          <ul className="mt-6 space-y-2.5">
+            {b.points.map((p) => (
+              <li key={p} className="flex items-start gap-3 text-graphite/85">
+                <span
+                  className="w-1.5 h-1.5 rounded-full mt-2 shrink-0"
+                  style={{ background: b.color === "volt" ? "var(--volt)" : "var(--cobalt)" }}
+                />
+                <span className="text-sm leading-relaxed">{p}</span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            to={b.cta.to}
+            className={`mt-8 inline-flex items-center gap-2 text-sm ${b.color === "volt" ? "btn-volt" : "btn-primary"}`}
+            data-testid={`cta-${b.tag.replace(/\s+/g, "-").toLowerCase()}`}
+          >
+            {b.cta.label} <ArrowRight size={14} />
+          </Link>
+        </div>
+      ))}
+    </section>
   );
 }

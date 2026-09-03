@@ -34,12 +34,11 @@ function ProtectedRoute({ children }) {
 
 function Shell() {
   return (
-    <div className="App">
-      <div className="mesh-bg" aria-hidden="true"><span /></div>
-      <div className="cyber-grid" aria-hidden="true" />
+    <div className="App min-h-screen shell">
       <ScrollToTop />
       <Header />
-      <Routes>
+      <main className="min-h-[calc(100vh-4rem)]">
+        <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/browse" element={<Browse />} />
@@ -56,7 +55,8 @@ function Shell() {
         <Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+        </Routes>
+      </main>
       <Footer />
       <AiChat />
       <Toaster theme="dark" />

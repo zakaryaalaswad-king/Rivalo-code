@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import api, { formatApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Sparkles, Send, X, MessageCircle } from "lucide-react";
+import { Send, X, MessageCircle } from "lucide-react";
 
 const SUGGESTIONS = [
   "How should I price this brief?",
@@ -57,30 +57,27 @@ export default function AiChat() {
           className="fixed bottom-24 right-6 z-40 btn-primary inline-flex items-center gap-2 shadow-2xl"
           data-testid="ai-chat-toggle"
         >
-          <MessageCircle size={18} /> Rivalo Coach
+          <MessageCircle size={18} /> Rivaloz Coach
         </button>
       )}
       {open && (
         <div
-          className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] card flex flex-col overflow-hidden shadow-2xl reveal"
+          className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] card !p-0 flex flex-col overflow-hidden shadow-2xl"
           data-testid="ai-chat-panel"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-gradient-to-r from-[#3B82F6]/12 via-transparent to-[#22C55E]/10">
+          <div className="flex items-center justify-between px-4 py-3" style={{ background: "var(--ink)", color: "#F0EEE8" }}>
             <div className="flex items-center gap-2.5">
-              <div className="relative">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#22C55E] flex items-center justify-center">
-                  <Sparkles size={14} className="text-white" />
-                </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#0F172A]" />
+              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "var(--cobalt)" }}>
+                <MessageCircle size={14} className="text-white" />
               </div>
               <div>
-                <div className="font-semibold text-sm">Rivalo Coach</div>
-                <div className="text-[10px] tracking-widest uppercase text-muted">Online</div>
+                <div className="font-semibold text-sm">Rivaloz Coach</div>
+                <div className="text-[10px] tracking-widest uppercase text-slate font-mono">Online</div>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="text-muted hover:text-white p-1 rounded-full !bg-transparent"
+              className="text-white/60 hover:text-white p-1 rounded-full !bg-transparent"
               data-testid="ai-chat-close"
             >
               <X size={16} />
@@ -90,15 +87,19 @@ export default function AiChat() {
           <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {messages.length === 0 && (
               <div className="space-y-3">
-                <div className="text-sm text-muted leading-relaxed">
-                  Ask me about <strong className="text-slate-300">pitching, pricing, briefs, comparing competitors, or staying competitive</strong>. I won't write your deliverables — but I'll help you think.
+                <div className="text-sm text-graphite/80 leading-relaxed">
+                  Ask me about <strong className="text-graphite">pitching, pricing, briefs, comparing competitors, or staying competitive</strong>. I won't write your deliverables — but I'll help you think.
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {SUGGESTIONS.map((s) => (
                     <button
                       key={s}
                       onClick={() => send(s)}
-                      className="text-xs px-3 py-1.5 rounded-full border border-white/10 hover:border-[#3B82F6]/50 hover:bg-[#3B82F6]/10 text-slate-300 transition-all"
+                      className="text-xs px-3 py-1.5 rounded-full transition-colors"
+                      style={{
+                        border: "1px solid var(--hairline-strong)",
+                        color: "var(--graphite)",
+                      }}
                       data-testid={`ai-suggest-${s.slice(0, 12).replace(/\s+/g, "-")}`}
                     >
                       {s}
@@ -113,9 +114,7 @@ export default function AiChat() {
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`ai-chat-bubble ${
-                    m.role === "user" ? "user" : ""
-                  } text-sm max-w-[85%] whitespace-pre-wrap leading-relaxed`}
+                  className={`ai-chat-bubble ${m.role === "user" ? "user" : ""} text-sm max-w-[85%] whitespace-pre-wrap leading-relaxed`}
                 >
                   {m.content}
                 </div>
@@ -132,13 +131,13 @@ export default function AiChat() {
             )}
           </div>
 
-          <div className="border-t border-white/10 p-3 flex gap-2">
+          <div className="p-3 flex gap-2" style={{ borderTop: "1px solid var(--hairline)" }}>
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Ask for advice…"
-              className="flex-1 px-3 py-2 text-sm"
+              className="on-canvas flex-1 px-3 py-2 text-sm"
               data-testid="ai-chat-input"
             />
             <button

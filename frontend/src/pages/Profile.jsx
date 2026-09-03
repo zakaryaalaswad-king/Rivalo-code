@@ -103,32 +103,30 @@ export default function Profile() {
   const avatarFull = form.avatar_url ? (form.avatar_url.startsWith("http") ? form.avatar_url : `${API_BASE.replace(/\/api$/, "")}${form.avatar_url}?auth=${token}`) : "";
 
   return (
+    <div className="shell">
     <div className="max-w-6xl mx-auto px-6 md:px-10 py-12">
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
-          <span className="pill">Profile management</span>
-          <h1 className="font-display text-4xl lg:text-5xl mt-4">{user.name}</h1>
-          <div className="text-muted text-sm mt-2 flex flex-wrap items-center gap-3">
+          <span className="pill pill-cobalt">Profile management</span>
+          <h1 className="font-display text-4xl lg:text-5xl mt-4 text-white">{user.name}</h1>
+          <div className="text-slate text-sm mt-2 flex flex-wrap items-center gap-3">
             <span>{user.email}</span>
             {user.email_verified
-              ? <span className="chip chip-green inline-flex items-center gap-1"><CheckCircle2 size={12}/> Email verified</span>
-              : <button onClick={() => setShowVerify(true)} className="chip chip-amber inline-flex items-center gap-1" data-testid="profile-verify-email-btn"><AlertCircle size={12}/> Verify email</button>
+              ? <span className="chip chip-volt inline-flex items-center gap-1"><CheckCircle2 size={12}/> Email verified</span>
+              : <button onClick={() => setShowVerify(true)} className="chip chip-ember inline-flex items-center gap-1" data-testid="profile-verify-email-btn"><AlertCircle size={12}/> Verify email</button>
             }
           </div>
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <div className="text-xs tracking-widest uppercase text-muted">Plan</div>
-            <div className="font-display text-2xl capitalize flex items-center gap-1.5 justify-end" data-testid="profile-plan">
-              {user.plan === "free" ? <span className="text-muted">Free</span> :
-               user.plan === "basic" ? <span style={{color:"#22C55E"}}>🟢 Basic</span> :
-               user.plan === "pro" ? <span style={{color:"#3B82F6"}}>🔵 Pro</span> :
-               user.plan === "business" ? <span style={{color:"#A855F7"}}>🟣 Business</span> : user.plan}
+            <div className="text-xs tracking-widest uppercase text-slate font-mono">Plan</div>
+            <div className="font-display text-2xl capitalize text-white" data-testid="profile-plan">
+              {user.plan === "free" ? "Free" : user.plan}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xs tracking-widest uppercase text-muted">Wins</div>
-            <div className="font-display text-3xl text-[#22C55E] flex items-center gap-2 justify-end" data-testid="profile-wins"><Trophy size={20}/>{user.wins || 0}</div>
+            <div className="text-xs tracking-widest uppercase text-slate font-mono">Wins</div>
+            <div className="font-display text-3xl flex items-center gap-2 justify-end text-white" data-testid="profile-wins" style={{ color: "var(--volt)" }}><Trophy size={20}/>{user.wins || 0}</div>
           </div>
           <TrustRing points={user.trust_points || 0} size={92} />
         </div>
@@ -140,14 +138,14 @@ export default function Profile() {
           <Card title="Avatar">
             <div className="flex items-center gap-4">
               <div className="w-24 h-24 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
-                {avatarFull ? <img src={avatarFull} alt="" className="w-full h-full object-cover" /> : <Camera className="text-slate-500" />}
+                {avatarFull ? <img src={avatarFull} alt="" className="w-full h-full object-cover" /> : <Camera className="text-slate" />}
               </div>
               <div className="flex-1">
                 <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer text-sm" data-testid="profile-avatar-btn">
                   <Camera size={14}/> Upload photo
                   <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" data-testid="profile-avatar-input" />
                 </label>
-                {form.avatar_url && <button type="button" onClick={() => set("avatar_url", "")} className="block text-xs text-red-300 mt-2">Remove</button>}
+                {form.avatar_url && <button type="button" onClick={() => set("avatar_url", "")} className="block text-xs text-ember mt-2">Remove</button>}
               </div>
             </div>
           </Card>
@@ -167,8 +165,8 @@ export default function Profile() {
           <Card title="CV / Resume">
             {form.cv_url ? (
               <div className="flex items-center justify-between">
-                <a href={`${API_BASE.replace(/\/api$/, "")}${form.cv_url}?auth=${token}`} target="_blank" rel="noreferrer" className="text-[#3B82F6] underline text-sm">Open uploaded CV</a>
-                <button type="button" onClick={() => set("cv_url", "")} className="text-xs text-red-300">Remove</button>
+                <a href={`${API_BASE.replace(/\/api$/, "")}${form.cv_url}?auth=${token}`} target="_blank" rel="noreferrer" className="text-[var(--cobalt)] underline text-sm">Open uploaded CV</a>
+                <button type="button" onClick={() => set("cv_url", "")} className="text-xs text-ember">Remove</button>
               </div>
             ) : (
               <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer text-sm" data-testid="profile-cv-btn">
@@ -197,7 +195,7 @@ export default function Profile() {
               {SOCIAL_FIELDS.map(({ k, icon: I, label }) => (
                 <Field key={k} label={label}>
                   <div className="relative">
-                    <I size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <I size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate" />
                     <input value={form.social_links[k] || ""} onChange={(e) => setSocial(k, e.target.value)} placeholder="https://…" className="w-full pl-9 pr-3 py-2.5" data-testid={`profile-social-${k}`}/>
                   </div>
                 </Field>
@@ -220,7 +218,7 @@ export default function Profile() {
                   <Field label="Image URL (optional)"><input value={p.image} onChange={(e) => setProj(i, "image", e.target.value)} placeholder="https://…" className="w-full px-3 py-2"/></Field>
                   <Field label="Short description"><input value={p.description} onChange={(e) => setProj(i, "description", e.target.value)} className="w-full px-3 py-2"/></Field>
                   <div className="sm:col-span-2 text-right">
-                    <button type="button" onClick={() => removeProj(i)} className="text-red-300 text-xs inline-flex items-center gap-1"><Trash2 size={12}/> Remove</button>
+                    <button type="button" onClick={() => removeProj(i)} className="text-ember text-xs inline-flex items-center gap-1"><Trash2 size={12}/> Remove</button>
                   </div>
                 </div>
               ))}
@@ -230,8 +228,8 @@ export default function Profile() {
 
           <Card title="Trust ladder">
             <TrustChecklist user={user} />
-          </Card>}
-          {success && <div className="text-[#22C55E] text-sm inline-flex items-center gap-2"><Sparkles size={14}/>{success}</div>}
+          </Card>
+          {success && <div className="text-sm inline-flex items-center gap-2" style={{ color: "var(--volt-ink)", background: "var(--volt)", padding: "6px 12px", borderRadius: 8 }}><Sparkles size={14}/>{success}</div>}
           <div className="flex gap-3">
             <button type="button" onClick={() => nav(-1)} className="btn-ghost" data-testid="profile-cancel-btn">Cancel</button>
             <button disabled={saving} className="btn-primary flex-1" data-testid="profile-save-btn">{saving ? "Saving…" : "Save profile"}</button>
@@ -241,19 +239,20 @@ export default function Profile() {
 
       {showVerify && <VerifyEmailModal onClose={() => setShowVerify(false)} onVerified={refresh} />}
     </div>
+    </div>
   );
 }
 
 function Card({ title, children }) {
   return (
     <div className="card p-6">
-      <div className="text-xs tracking-[0.2em] uppercase text-muted mb-4">{title}</div>
+      <div className="text-xs tracking-[0.2em] uppercase text-slate mb-4 font-mono">{title}</div>
       <div className="space-y-4">{children}</div>
     </div>
   );
 }
 function Field({ label, children }) {
-  return (<div><label className="text-xs text-muted">{label}</label><div className="mt-1">{children}</div></div>);
+  return (<div><label className="text-xs text-slate font-mono">{label}</label><div className="mt-1">{children}</div></div>);
 }
 function PayField({ icon, label, value, onChange, placeholder, testid }) {
   return (
@@ -294,12 +293,12 @@ function TrustChecklist({ user }) {
   return (
     <ul className="space-y-2" data-testid="trust-checklist">
       {items.map((it) => (
-        <li key={it.label} className={`flex items-center justify-between text-sm ${it.ok ? "text-slate-300" : "text-muted"}`}>
+        <li key={it.label} className={`flex items-center justify-between text-sm ${it.ok ? "text-graphite" : "text-muted"}`}>
           <span className="inline-flex items-center gap-2">
-            {it.ok ? <CheckCircle2 size={14} className="text-[#22C55E]"/> : <span className="w-3.5 h-3.5 rounded-full border border-slate-500 inline-block"/>}
+            {it.ok ? <CheckCircle2 size={14} className="text-[var(--volt-ink)]"/> : <span className="w-3.5 h-3.5 rounded-full border border-hairline inline-block"/>}
             {it.label}
           </span>
-          <span className={`font-mono text-xs ${it.ok ? "text-[#22C55E]" : "text-muted"}`}>+{it.pts}</span>
+          <span className={`font-mono text-xs ${it.ok ? "text-[var(--volt-ink)]" : "text-muted"}`}>+{it.pts}</span>
         </li>
       ))}
     </ul>
